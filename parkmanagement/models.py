@@ -27,3 +27,23 @@ class BenutzerProfil(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - Lieblingsverein: {self.lieblingsverein}"
+    
+class Verein(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    stadt = models.CharField(max_length=100, blank=True, null=True)
+    liga = models.CharField(max_length=50, blank=True, null=True)
+    logo_url = models.URLField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+class Stadion(models.Model):
+    name = models.CharField(max_length=100)
+    verein = models.ForeignKey(Verein, on_delete=models.CASCADE, related_name='stadien')
+    adresse = models.CharField(max_length=255)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+
+    def __str__(self):
+        return f"{self.name} ({self.verein})"
+    

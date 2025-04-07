@@ -1,9 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ParkplatzViewSet, UserRegisterView
+from .views import ParkplatzViewSet, StadionViewSet, UserRegisterView, VereinViewSet
 
 router = DefaultRouter()
 router.register(r'parkplatz', ParkplatzViewSet, basename='parkplatz')
+router.register(r'verein', VereinViewSet)
+router.register(r'stadion', StadionViewSet)
 
 # URL patterns für die Parkmanagement-App
 # Hier werden die URL-Pfade für die API-Endpunkte definiert.

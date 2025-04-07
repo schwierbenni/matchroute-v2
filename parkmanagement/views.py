@@ -2,8 +2,8 @@ from django.shortcuts import render
 from rest_framework import viewsets, generics
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import User
-from .models import Parkplatz
-from .serializers import ParkplatzSerializer, UserRegisterSerializer
+from .models import Parkplatz, Stadion, Verein
+from .serializers import ParkplatzSerializer, StadionSerializer, UserRegisterSerializer, VereinSerializer
 
 # Dieses ViewSet wird verwendet, um die Parkplatz-API zu erstellen.
 # Es ermöglicht das Erstellen, Bearbeiten, Löschen und Abrufen von Parkplätzen.
@@ -19,3 +19,11 @@ class ParkplatzViewSet(viewsets.ModelViewSet):
 class UserRegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserRegisterSerializer
+
+class VereinViewSet(viewsets.ModelViewSet):
+    queryset = Verein.objects.all()
+    serializer_class = VereinSerializer
+
+class StadionViewSet(viewsets.ModelViewSet):
+    queryset = Stadion.objects.all()
+    serializer_class = StadionSerializer

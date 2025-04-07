@@ -1,6 +1,8 @@
 from django.contrib import admin
 from .models import Parkplatz
 from .models import BenutzerProfil
+from .models import Verein
+from .models import Stadion
 # Register your models here.
 
 # Das Parkplatz-Modell wird im Admin-Bereich registriert.
@@ -14,3 +16,13 @@ class BenutzerProfilAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'lieblingsverein')
     list_filter = ('lieblingsverein',)
     ordering = ('user',)
+    
+@admin.register(Verein)
+class VereinAdmin(admin.ModelAdmin):
+    list_display = ('name', 'stadt', 'liga')
+    search_fields = ('name', 'stadt')
+
+@admin.register(Stadion)
+class StadionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'verein', 'adresse')
+    search_fields = ('name', 'verein__name')

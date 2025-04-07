@@ -5,8 +5,10 @@ from .models import Verein
 from .models import Stadion
 # Register your models here.
 
-# Das Parkplatz-Modell wird im Admin-Bereich registriert.
-admin.site.register(Parkplatz)
+@admin.register(Parkplatz)
+class ParkplatzAdmin(admin.ModelAdmin):
+    list_display = ('name', 'stadion', 'kapazitaet', 'verfuegbar')
+    list_filter = ('stadion',)
 
 # Das Benutzerprofil-Modell wird im Admin-Bereich registriert.
 # Dies ermöglicht es Administratoren, Benutzerprofile zu verwalten und zu bearbeiten.

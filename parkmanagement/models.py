@@ -15,6 +15,7 @@ class Parkplatz(models.Model):
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     letztes_update = models.DateTimeField(auto_now=True)
+    stadion = models.ForeignKey('Stadion', on_delete=models.CASCADE, null=True, blank=True, related_name='parkplaetze')
 
     def __str__(self):
         return self.name

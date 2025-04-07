@@ -2,12 +2,14 @@ from rest_framework import serializers
 from .models import Parkplatz
 from django.contrib.auth.models import User
 
-# This serializer is used to convert the Parkplatz model instances into JSON format and vice versa.
+# Dieser Serializer wird verwendet, um die Daten für den Parkplatz zu serialisieren.
+# Er wird verwendet, um die Daten in JSON-Format zu konvertieren, damit sie über die API gesendet werden können.
 class ParkplatzSerializer(serializers.ModelSerializer):
     class Meta:
         model = Parkplatz
         fields = '__all__'
 
+# Dieser Serializer wird verwendet, um die Daten für den Benutzer zu serialisieren.
 class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     password2 = serializers.CharField(write_only=True)
@@ -34,5 +36,5 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             if lieblingsverein:
                  user.profil.lieblingsverein = lieblingsverein
                  user.profil.save()
-                 
+
             return user

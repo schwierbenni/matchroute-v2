@@ -1,12 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-# Create your models here.
+# Model für Parkplatz
 class Parkplatz(models.Model):
     name = models.CharField(max_length=100)
     adresse = models.CharField(max_length=255)
     kapazitaet = models.IntegerField()
-    frei = models.IntegerField(null=True, blank=True)
+    frei = models.IntegerField(default=0, null=True, blank=True)
     preis_pro_stunde = models.DecimalField(max_digits=5, decimal_places=2)
     verfuegbar = models.BooleanField(default=True)
     bewertung = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True)
@@ -19,6 +19,8 @@ class Parkplatz(models.Model):
     def __str__(self):
         return self.name
 
+# Model für Benutzerprofil
+# Das Benutzerprofil erweitert die Django User-Klasse um zusätzliche Informationen.
 class BenutzerProfil(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profil')
     lieblingsverein = models.CharField(max_length=100, null=True, blank=True)

@@ -3,10 +3,11 @@ from .models import Parkplatz
 from .models import BenutzerProfil
 # Register your models here.
 
-# Registering the Parkplatz model with the Django admin interface
+# Das Parkplatz-Modell wird im Admin-Bereich registriert.
 admin.site.register(Parkplatz)
 
-# Registering the Benutzer model with the Django admin interface
+# Das Benutzerprofil-Modell wird im Admin-Bereich registriert.
+# Dies ermöglicht es Administratoren, Benutzerprofile zu verwalten und zu bearbeiten.
 @admin.register(BenutzerProfil)
 class BenutzerProfilAdmin(admin.ModelAdmin):
     list_display = ('user', 'lieblingsverein')

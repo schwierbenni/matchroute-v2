@@ -24,7 +24,7 @@ class Parkplatz(models.Model):
 # Das Benutzerprofil erweitert die Django User-Klasse um zusätzliche Informationen.
 class BenutzerProfil(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profil')
-    lieblingsverein = models.CharField(max_length=100, null=True, blank=True)
+    lieblingsverein = models.ForeignKey('Verein', on_delete=models.SET_NULL, null=True, blank=True, related_name='fans')
 
     def __str__(self):
         return f"{self.user.username} - Lieblingsverein: {self.lieblingsverein}"

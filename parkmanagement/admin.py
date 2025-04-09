@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Parkplatz
+from .models import Parkplatz, Route
 from .models import BenutzerProfil
 from .models import Verein
 from .models import Stadion
@@ -18,7 +18,7 @@ class BenutzerProfilAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'lieblingsverein')
     list_filter = ('lieblingsverein',)
     ordering = ('user',)
-    
+
 @admin.register(Verein)
 class VereinAdmin(admin.ModelAdmin):
     list_display = ('name', 'stadt', 'liga')
@@ -28,3 +28,10 @@ class VereinAdmin(admin.ModelAdmin):
 class StadionAdmin(admin.ModelAdmin):
     list_display = ('name', 'verein', 'adresse')
     search_fields = ('name', 'verein__name')
+
+@admin.register(Route)
+class RouteAdmin(admin.ModelAdmin):
+    list_display = ('benutzer', 'stadion', 'parkplatz', 'start_adresse', 'strecke_km', 'dauer_minuten')
+    search_fields = ('benutzer__username', 'stadion__name', 'parkplatz__name')
+    list_filter = ('stadion', 'parkplatz')
+    ordering = ('benutzer',)

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Parkplatz, Stadion, Verein
+from .models import Parkplatz, Route, Stadion, Verein
 from django.contrib.auth.models import User
 
 # Dieser Serializer wird verwendet, um die Daten für den Parkplatz zu serialisieren.
@@ -47,4 +47,9 @@ class VereinSerializer(serializers.ModelSerializer):
 class StadionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Stadion
+        fields = '__all__'
+
+class RouteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Route
         fields = '__all__'

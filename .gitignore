@@ -1,6 +1,10 @@
 # Virtuelle Umgebung
 venv/
 
+# Private Konfigurationsdateien
+.env
+*.env
+
 # Python Cache
 __pycache__/
 *.pyc

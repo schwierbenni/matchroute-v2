@@ -6,7 +6,7 @@ from rest_framework import viewsets, generics
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import User
 
-from parkmanagement.utils import berechne_route
+from parkmanagement.utils import berechne_gesamtzeit_mit_transit_und_walk, berechne_route
 from .models import Parkplatz, Route, Stadion, Verein
 from .serializers import ParkplatzSerializer, RouteSerializer, StadionSerializer, UserRegisterSerializer, VereinSerializer
 
@@ -43,16 +43,23 @@ class RouteViewSet(viewsets.ModelViewSet):
         return self.queryset.filter(benutzer=user).order_by('-erstelldatum')
 
 class RouteSuggestionView(APIView):
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         start_adresse = request.data.get('start_adresse')
         user = request.user
-        stadion = user.profil.lieblingsverein.stadien.first()
+
+        try:
+            stadion = user.profil.lieblingsverein.stadien.first()
+        except AttributeError:
+            return Response({"detail": "Kein Lieblingsverein oder Stadion gefunden."}, status=400)
+
         parkplaetze = stadion.parkplaetze.all()
         vorschlaege = []
 
         for parkplatz in parkplaetze:
-            result = berechne_route(start_adresse, parkplatz.latitude, parkplatz.longitude)
+            result = berechne_gesamtzeit_mit_transit_und_walk(start_adresse, parkplatz, stadion)
+
             if result:
                 vorschlaege.append({
                     "parkplatz": {
@@ -61,20 +68,26 @@ class RouteSuggestionView(APIView):
                         "latitude": float(parkplatz.latitude),
                         "longitude": float(parkplatz.longitude),
                     },
-                    "dauer_min": result["dauer_min"],
-                    "distanz_km": result["distanz_km"],
-                    "polyline": result["polyline"]
+                    "dauer_auto": result.get("dauer_auto"),
+                    "dauer_transit": result.get("dauer_transit"),
+                    "dauer_walking": result.get("dauer_walking"),
+                    "beste_methode": result.get("beste_methode"),
+                    "gesamtzeit": result.get("gesamt_min"),
+                    "distanz_km": result.get("distanz_km"),
+                    "polyline_auto": result.get("polyline_auto"),
+                    "polyline_transit": result.get("polyline_transit"),
+                    "polyline_walking": result.get("polyline_walking"),
                 })
 
         if not vorschlaege:
             return Response({"detail": "Keine Route gefunden."}, status=400)
 
-        bester = min(vorschlaege, key=lambda x: x["dauer_min"])
+        bester = min(vorschlaege, key=lambda x: x["gesamtzeit"])
 
         return Response({
             "empfohlener_parkplatz": bester,
             "alle_parkplaetze": vorschlaege
-        }, status=status.HTTP_200_OK)
+        }, status=200)
     
 # Diese View wird verwendet, um eine Route zu speichern. 
 # Wenn der Benutzer im Frontend eine Navigation startet, sollen im Backend die Eckdaten zur Route abgespeichert werden.

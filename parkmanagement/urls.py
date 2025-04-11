@@ -13,6 +13,6 @@ router.register(r'routen', RouteViewSet)
 urlpatterns = [
     path('', include(router.urls)),
     path('register/', UserRegisterView.as_view(), name='register'),
-    path('routen/vorschlag/', RouteSuggestionView.as_view(), name='routing-vorschlag'),
+    path('routen-vorschlag/', RouteSuggestionView.as_view(), name='routen-vorschlag'),
     path('routen/speichern/', RouteSpeichernView.as_view(), name='routing-speichern'),
 ]

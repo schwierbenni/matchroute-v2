@@ -5,15 +5,18 @@ from django.contrib.auth.models import User
 class Parkplatz(models.Model):
     name = models.CharField(max_length=100)
     adresse = models.CharField(max_length=255)
-    kapazitaet = models.IntegerField()
+    
+    kapazitaet = models.IntegerField(null=True, blank=True)
     frei = models.IntegerField(default=0, null=True, blank=True)
-    preis_pro_stunde = models.DecimalField(max_digits=5, decimal_places=2)
+    preis_pro_stunde = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     verfuegbar = models.BooleanField(default=True)
     bewertung = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True)
     oeffnungszeiten = models.CharField(max_length=100, null=True, blank=True)
     schliesszeiten = models.CharField(max_length=100, null=True, blank=True)
-    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    
     letztes_update = models.DateTimeField(auto_now=True)
     stadion = models.ForeignKey('Stadion', on_delete=models.CASCADE, null=True, blank=True, related_name='parkplaetze')
 
@@ -22,7 +25,7 @@ class Parkplatz(models.Model):
 
 # Model für Benutzerprofil
 # Das Benutzerprofil erweitert die Django User-Klasse um zusätzliche Informationen.
-class BenutzerProfil(models.Model):
+class BenutzerProfil(models.Model): 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profil')
     lieblingsverein = models.ForeignKey('Verein', on_delete=models.SET_NULL, null=True, blank=True, related_name='fans')
 

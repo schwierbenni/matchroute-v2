@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import ParkplatzViewSet, RouteSpeichernView, RouteSuggestionView, RouteViewSet, StadionViewSet, UserRegisterView, VereinViewSet
+from .views import ProfilView
 
 router = DefaultRouter()
 router.register(r'parkplatz', ParkplatzViewSet, basename='parkplatz')
@@ -15,4 +16,5 @@ urlpatterns = [
     path('register/', UserRegisterView.as_view(), name='register'),
     path('routen-vorschlag/', RouteSuggestionView.as_view(), name='routen-vorschlag'),
     path('routen/speichern/', RouteSpeichernView.as_view(), name='routing-speichern'),
+    path('profil/', ProfilView.as_view(), name='profil'),
 ]

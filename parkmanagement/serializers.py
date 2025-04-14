@@ -13,7 +13,7 @@ class ParkplatzSerializer(serializers.ModelSerializer):
 class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     password2 = serializers.CharField(write_only=True)
-    lieblingsverein = serializers.CharField(required=False, write_only=True)
+    lieblingsverein = serializers.IntegerField(required=False, write_only=True)
 
     class Meta:
         model = User
@@ -25,19 +25,23 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             return data
         
     def create(self, validated_data):
-            password = validated_data.pop('password')
-            validated_data.pop('password2', None)
-            lieblingsverein = validated_data.pop('lieblingsverein', None)
+        password = validated_data.pop('password')
+        validated_data.pop('password2', None)
+        lieblingsverein_id = validated_data.pop('lieblingsverein', None)
 
-            user = User(**validated_data)
-            user.set_password(password)
-            user.save()
+        user = User(**validated_data)
+        user.set_password(password)
+        user.save()
 
-            if lieblingsverein:
-                 user.profil.lieblingsverein = lieblingsverein
-                 user.profil.save()
+        if lieblingsverein_id:
+            try:
+                verein = Verein.objects.get(id=lieblingsverein_id)
+                user.profil.lieblingsverein = verein
+                user.profil.save()
+            except Verein.DoesNotExist:
+                raise serializers.ValidationError("Verein nicht gefunden.")
 
-            return user
+        return user
     
 class VereinSerializer(serializers.ModelSerializer):
     class Meta:

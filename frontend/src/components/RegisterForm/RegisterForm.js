@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import './RegisterForm.css';
+import { registerUser } from '../../api/register';
 
 const RegisterForm = () => {
   const [form, setForm] = useState({
@@ -29,7 +30,7 @@ const RegisterForm = () => {
   // Registrierung absenden
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.post(`${process.env.REACT_APP_API_URL}/parkplatz/register/`, form)
+    registerUser(form)
       .then((res) => {
         setMessage('Registrierung erfolgreich!');
         console.log('Erfolg:', res.data);

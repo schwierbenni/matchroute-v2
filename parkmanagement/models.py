@@ -47,6 +47,7 @@ class Stadion(models.Model):
     adresse = models.CharField(max_length=255)
     latitude = models.DecimalField(max_digits=9, decimal_places=6)
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    bild_url = models.URLField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.name} ({self.verein})"

@@ -151,14 +151,13 @@ class ProfilView(APIView):
 
     def get(self, request):
         profil = request.user.profil
+        lieblingsverein = profil.lieblingsverein
+        stadion = lieblingsverein.stadien.first() if lieblingsverein else None
         return Response(
             {
                 "username": request.user.username,
                 "email": request.user.email,
-                "lieblingsverein": (
-                    VereinSerializer(profil.lieblingsverein).data
-                    if profil.lieblingsverein
-                    else None
-                ),
+                "lieblingsverein": VereinSerializer(lieblingsverein).data if lieblingsverein else None,
+                "stadion": StadionSerializer(stadion).data if stadion else None
             }
         )

@@ -14,10 +14,13 @@ const NavBar = () => {
 
   return (
     <nav className="navbar">
-      <div className="navbar-title">🏟️ MatchRoute</div>
+      <div className="navbar-title">MatchRoute
+      <Link to="/dashboard"></Link>
+      </div>
       <div className="navbar-links">
         {!isLoggedIn && <Link to="/login">Login</Link>}
         {!isLoggedIn && <Link to="/register">Registrieren</Link>}
+        {isLoggedIn && <Link to="/routenplanung">Route planen</Link>}
         {isLoggedIn && <Link to="/dashboard">Dashboard</Link>}
         {isLoggedIn && (
           <button onClick={handleLogout} className="logout-button">

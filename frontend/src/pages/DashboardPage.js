@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import axiosClient from "../api/axiosClient";
-import LogoutButton from '../components/LogoutButton/LogoutButton';
 
 const DashboardPage = () => {
   const [profil, setProfil] = useState(null);
@@ -75,10 +74,6 @@ const DashboardPage = () => {
           )}
         </div>
       )}
-
-      <div style={{ marginTop: "40px", textAlign: "center" }}>
-        <LogoutButton />
-      </div>
     </div>
   );
 };

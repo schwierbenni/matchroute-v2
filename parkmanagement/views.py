@@ -65,6 +65,9 @@ class RouteSuggestionView(APIView):
         user = request.user
 
         try:
+            print("User:", user)
+            print("Benutzerprofil:", getattr(user, "profil", None))
+            print("Lieblingsverein:", getattr(getattr(user, "profil", None), "lieblingsverein", None))
             stadion = user.profil.lieblingsverein.stadien.first()
         except AttributeError:
             return Response(

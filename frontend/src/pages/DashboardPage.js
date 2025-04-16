@@ -6,7 +6,7 @@ const DashboardPage = () => {
 
   useEffect(() => {
     axiosClient
-      .get("parkplatz/profil/")
+      .get("api/profil/")
       .then((res) => {
         console.log("Profil geladen:", res.data);
         setProfil(res.data);

@@ -3,14 +3,42 @@ import axiosClient from "../api/axiosClient";
 import {
   MapContainer,
   TileLayer,
-  Marker,
   Polyline,
   Popup,
+  useMap,
 } from "react-leaflet";
 import { decodePolyline } from "../utils/decodePolyline";
 import "leaflet/dist/leaflet.css";
+import { CircleMarker } from "react-leaflet";
 
-const useDummyData = false; // Umschalten für Testbetrieb
+const markerColors = {
+    start: "red",
+    ziel: "black",
+    bester: "green",
+    vorschlag: "blue",
+    route: "blue",
+    transit: "green"
+  };
+
+const useDummyData = true;
+
+const formatMinutes = (min) => {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return h > 0 ? `${h}h ${m}min` : `${m}min`;
+};
+
+const formatKm = (km) => {
+  return `${parseFloat(km).toFixed(1)} km`;
+};
+
+const FlyTo = ({ position }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (position) map.flyTo(position, 15);
+  }, [position, map]);
+  return null;
+};
 
 const RoutePlanPage = () => {
   const [startAdresse, setStartAdresse] = useState("");
@@ -22,6 +50,7 @@ const RoutePlanPage = () => {
   const [zielMarker, setZielMarker] = useState(null);
   const [alleVorschlaege, setAlleVorschlaege] = useState([]);
   const [stadionId, setStadionId] = useState(null);
+  const [fokusParkplatz, setFokusParkplatz] = useState(null);
 
   useEffect(() => {
     const fetchProfil = async () => {
@@ -52,8 +81,8 @@ const RoutePlanPage = () => {
             parkplatz: {
               id: 5,
               name: "Parkhaus Stadion Nord",
-              lat: 53.5665,
-              lon: 9.9845,
+              latitude: 53.5665,
+              longitude: 9.9845,
             },
             gesamtzeit: 22,
             distanz_km: 4.8,
@@ -66,8 +95,8 @@ const RoutePlanPage = () => {
               parkplatz: {
                 id: 10,
                 name: "P1 Messe",
-                lat: 53.5642,
-                lon: 9.9821,
+                latitude: 53.5642,
+                longitude: 9.9821,
               },
               gesamtzeit: 25,
               distanz_km: 5.1,
@@ -76,8 +105,8 @@ const RoutePlanPage = () => {
               parkplatz: {
                 id: 12,
                 name: "P2 Uni Hamburg",
-                lat: 53.565,
-                lon: 9.99,
+                latitude: 53.565,
+                longitude: 9.99,
               },
               gesamtzeit: 28,
               distanz_km: 5.4,
@@ -85,8 +114,16 @@ const RoutePlanPage = () => {
           ],
         };
 
+        const sorted = [
+          dummyResponse.empfohlener_parkplatz,
+          ...dummyResponse.alle_parkplaetze,
+        ];
         setErgebnis(dummyResponse);
-        setAlleVorschlaege(dummyResponse.alle_parkplaetze || []);
+        setAlleVorschlaege(sorted);
+        setFokusParkplatz([
+          dummyResponse.empfohlener_parkplatz.parkplatz.latitude,
+          dummyResponse.empfohlener_parkplatz.parkplatz.longitude,
+        ]);
 
         const route = dummyResponse.empfohlener_parkplatz;
         if (route?.polyline_auto) {
@@ -104,7 +141,15 @@ const RoutePlanPage = () => {
           start_adresse: startAdresse,
         });
         setErgebnis(res.data);
-        setAlleVorschlaege(res.data?.alle_parkplaetze || []);
+        const sorted = [
+          res.data?.empfohlener_parkplatz,
+          ...(res.data?.alle_parkplaetze || []),
+        ];
+        setAlleVorschlaege(sorted);
+        setFokusParkplatz([
+          sorted[0].parkplatz.latitude,
+          sorted[0].parkplatz.longitude,
+        ]);
 
         const route = res.data?.empfohlener_parkplatz;
         if (route?.polyline_auto) {
@@ -153,10 +198,10 @@ const RoutePlanPage = () => {
         route_url: null,
       });
 
-      alert("✅ Route erfolgreich gespeichert.");
+      alert("Route erfolgreich gespeichert.");
     } catch (err) {
       console.error("Fehler beim Speichern der Route:", err);
-      alert("❌ Route konnte nicht gespeichert werden.");
+      alert("Route konnte nicht gespeichert werden.");
     }
   };
 
@@ -164,7 +209,10 @@ const RoutePlanPage = () => {
     routeCoords.length > 0
       ? routeCoords[Math.floor(routeCoords.length / 2)]
       : alleVorschlaege.length > 0
-      ? [alleVorschlaege[0].parkplatz.lat, alleVorschlaege[0].parkplatz.lon]
+      ? [
+          alleVorschlaege[0].parkplatz.latitude,
+          alleVorschlaege[0].parkplatz.longitude,
+        ]
       : [53.5511, 9.9937];
 
   return (
@@ -203,112 +251,125 @@ const RoutePlanPage = () => {
 
       {isLoading && <p style={{ marginTop: 16 }}>⏳ Route wird berechnet...</p>}
 
-      {ergebnis?.empfohlener_parkplatz && (
-        <div
-          style={{
-            marginTop: 24,
-            backgroundColor: "#f4f4f4",
-            padding: 16,
-            borderRadius: 8,
-          }}
-        >
-          <h3>✅ Empfohlener Parkplatz:</h3>
-          <p>
-            <strong>{ergebnis.empfohlener_parkplatz.parkplatz.name}</strong>
-          </p>
-          <p>Dauer (gesamt): {ergebnis.empfohlener_parkplatz.gesamtzeit} min</p>
-          <p>Distanz: {ergebnis.empfohlener_parkplatz.distanz_km} km</p>
-          <p>Bester Modus: {ergebnis.empfohlener_parkplatz.beste_methode}</p>
-
-          <button
-            onClick={handleSaveRoute}
+      {alleVorschlaege.length > 0 && (
+        <>
+          <MapContainer
+            center={fokusParkplatz || mapCenter}
+            zoom={13}
             style={{
-              marginTop: 12,
-              padding: "8px 16px",
-              borderRadius: "8px",
-              backgroundColor: "#4caf50",
-              color: "white",
-              border: "none",
-              cursor: "pointer",
+              height: "400px",
+              width: "100%",
+              marginTop: 20,
+              borderRadius: 8,
             }}
           >
-            💾 Route speichern
-          </button>
-        </div>
-      )}
-
-      {ergebnis?.detail && (
-        <p style={{ color: "crimson", marginTop: 20 }}>{ergebnis.detail}</p>
-      )}
-
-      {(routeCoords.length > 0 || alleVorschlaege.length > 0) && (
-        <div style={{ marginTop: 30 }}>
-          <MapContainer
-            center={mapCenter}
-            zoom={13}
-            style={{ height: "400px", width: "100%", borderRadius: "8px" }}
-          >
+            <FlyTo position={fokusParkplatz} />
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+              attribution="&copy; OpenStreetMap"
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
             {routeCoords.length > 0 && (
-              <Polyline positions={routeCoords} color="blue" />
+              <Polyline positions={routeCoords} color={markerColors.route} />
             )}
             {transitCoords.length > 0 && (
-              <Polyline positions={transitCoords} color="green" dashArray="6" />
-            )}
-            {startMarker && (
-              <Marker position={startMarker}>
-                <Popup>Startadresse</Popup>
-              </Marker>
-            )}
-            {zielMarker && (
-              <Marker position={zielMarker}>
-                <Popup>Empfohlener Parkplatz</Popup>
-              </Marker>
+              <Polyline
+                positions={transitCoords}
+                color={markerColors.transit}
+                dashArray="6"
+              />
             )}
 
-            {alleVorschlaege.map((v, index) => (
-              <Marker
-                key={index}
-                position={[v.parkplatz.latitude, v.parkplatz.longitude]}
+            {startMarker && (
+              <CircleMarker
+                center={startMarker}
+                radius={8}
+                pathOptions={{ color: markerColors.start, fillOpacity: 0.6 }}
+              >
+                <Popup>Startadresse</Popup>
+              </CircleMarker>
+            )}
+
+            {zielMarker && (
+              <CircleMarker
+                center={zielMarker}
+                radius={8}
+                pathOptions={{ color: markerColors.ziel, fillOpacity: 0.6 }}
+              >
+                <Popup>Empfohlener Parkplatz</Popup>
+              </CircleMarker>
+            )}
+
+            {alleVorschlaege.map((v, i) => (
+              <CircleMarker
+                key={v.parkplatz.id}
+                center={[v.parkplatz.latitude, v.parkplatz.longitude]}
+                radius={8}
+                pathOptions={{
+                  color: i === 0 ? markerColors.bester : markerColors.vorschlag,
+                  fillOpacity: 0.6,
+                }}
               >
                 <Popup>
-                  🅿️ <strong>{v.parkplatz.name}</strong>
+                  <strong>{v.parkplatz.name}</strong>
                   <br />
-                  Zeit: {v.gesamtzeit} min
+                  {formatMinutes(v.gesamtzeit)}
                   <br />
-                  Distanz: {v.distanz_km} km
+                  {formatKm(v.distanz_km)}
                 </Popup>
-              </Marker>
+              </CircleMarker>
+              
             ))}
           </MapContainer>
 
-          <div style={{ marginTop: 12 }}>
-            <p>
-              <span style={{ color: "blue" }}>▬</span> Auto-Route
-            </p>
-            <p>
-              <span style={{ color: "green" }}>▬</span> Transit-/Fußweg
-            </p>
+          <div style={{ marginTop: 16 }}>
+            <h4>Parkplätze (sortiert nach Dauer)</h4>
+            {alleVorschlaege.map((v, i) => (
+              <div
+                key={v.parkplatz.id}
+                onClick={() =>
+                  setFokusParkplatz([
+                    v.parkplatz.latitude,
+                    v.parkplatz.longitude,
+                  ])
+                }
+                style={{
+                  padding: "10px",
+                  marginBottom: "10px",
+                  border: "1px solid #ccc",
+                  borderRadius: 6,
+                  backgroundColor: i === 0 ? "#e8f5e9" : "#f9f9f9",
+                  cursor: "pointer",
+                  boxShadow: i === 0 ? "0 0 6px rgba(0, 128, 0, 0.3)" : "none",
+                }}
+              >
+                <p style={{ margin: 0, fontWeight: 600 }}>{v.parkplatz.name}</p>
+                <p style={{ margin: 0 }}>
+                  {formatMinutes(v.gesamtzeit)} · 📏 {formatKm(v.distanz_km)}
+                </p>
+              </div>
+            ))}
           </div>
-
-          {alleVorschlaege.length > 0 && (
-            <div style={{ marginTop: 24 }}>
-              <h4>🅿️ Weitere Parkplätze (nach Zeit sortiert):</h4>
-              {alleVorschlaege
-                .sort((a, b) => a.gesamtzeit - b.gesamtzeit)
-                .map((v, i) => (
-                  <div key={i} style={{ padding: "4px 0" }}>
-                    <strong>{v.parkplatz.name}</strong> – {v.gesamtzeit} min,{" "}
-                    {v.distanz_km} km
-                  </div>
-                ))}
+          <div style={{ marginTop: 10, fontSize: "14px", color: "#555" }}>
+              <strong>Legende:</strong>
+              <br />
+              <span style={{ color: markerColors.start }}>⬤</span> Startadresse
+              <br />
+              <span style={{ color: markerColors.ziel }}>⬤</span> Ziel
+              (empfohlener Parkplatz)
+              <br />
+              <span style={{ color: markerColors.bester }}>⬤</span> Bester
+              Vorschlag
+              <br />
+              <span style={{ color: markerColors.vorschlag }}>⬤</span> Weitere
+              Parkplätze
+              <br />
+              <span style={{ color: markerColors.route }}>▬</span> Auto-Route
+              <br />
+              <span style={{ color: markerColors.transit }}>▬</span>{" "}
+              Transit-/Fußweg
             </div>
-          )}
-        </div>
+        </>
       )}
     </div>
   );

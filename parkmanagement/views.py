@@ -108,8 +108,10 @@ class RouteSuggestionView(APIView):
 
         bester = min(vorschlaege, key=lambda x: x["gesamtzeit"])
 
+        alle_ohne_bester = [vorschlag for vorschlag in vorschlaege if vorschlag != bester]
+
         return Response(
-            {"empfohlener_parkplatz": bester, "alle_parkplaetze": vorschlaege},
+            {"empfohlener_parkplatz": bester, "alle_parkplaetze": alle_ohne_bester},
             status=200,
         )
 

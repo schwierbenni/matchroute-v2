@@ -12,15 +12,13 @@ import "leaflet/dist/leaflet.css";
 import { CircleMarker } from "react-leaflet";
 
 const markerColors = {
-    start: "red",
-    ziel: "black",
-    bester: "green",
-    vorschlag: "blue",
-    route: "blue",
-    transit: "green"
-  };
-
-const useDummyData = true;
+  start: "red",
+  ziel: "black",
+  bester: "green",
+  vorschlag: "blue",
+  route: "blue",
+  transit: "green"
+};
 
 const formatMinutes = (min) => {
   const h = Math.floor(min / 60);
@@ -75,94 +73,27 @@ const RoutePlanPage = () => {
     setZielMarker(null);
 
     try {
-      if (useDummyData) {
-        const dummyResponse = {
-          empfohlener_parkplatz: {
-            parkplatz: {
-              id: 5,
-              name: "Parkhaus Stadion Nord",
-              latitude: 53.5665,
-              longitude: 9.9845,
-            },
-            gesamtzeit: 22,
-            distanz_km: 4.8,
-            beste_methode: "Auto + Fußweg",
-            polyline_auto: "o}ynHusxw@k@k@{@m@{@g@c@k@o@wA_@y@Y]YY[o@o@",
-            polyline_transit: "mxykHqvww@dAp@b@p@Z^h@n@l@l@t@r@b@",
-          },
-          alle_parkplaetze: [
-            {
-              parkplatz: {
-                id: 10,
-                name: "P1 Messe",
-                latitude: 53.5642,
-                longitude: 9.9821,
-              },
-              gesamtzeit: 25,
-              distanz_km: 5.1,
-            },
-            {
-              parkplatz: {
-                id: 12,
-                name: "P2 Uni Hamburg",
-                latitude: 53.565,
-                longitude: 9.99,
-              },
-              gesamtzeit: 28,
-              distanz_km: 5.4,
-            },
-          ],
-        };
+      const res = await axiosClient.post("api/routen-vorschlag/", {
+        start_adresse: startAdresse,
+      });
+      setErgebnis(res.data);
 
-        const sorted = [
-          dummyResponse.empfohlener_parkplatz,
-          ...dummyResponse.alle_parkplaetze,
-        ];
-        setErgebnis(dummyResponse);
-        setAlleVorschlaege(sorted);
-        setFokusParkplatz([
-          dummyResponse.empfohlener_parkplatz.parkplatz.latitude,
-          dummyResponse.empfohlener_parkplatz.parkplatz.longitude,
-        ]);
+      const sorted = [
+        res.data?.empfohlener_parkplatz,
+        ...(res.data?.alle_parkplaetze || []),
+      ];
+      setAlleVorschlaege(sorted);
 
-        const route = dummyResponse.empfohlener_parkplatz;
-        if (route?.polyline_auto) {
-          const coords = decodePolyline(route.polyline_auto);
-          setRouteCoords(coords);
-          setStartMarker(coords[0]);
-          setZielMarker(coords[coords.length - 1]);
-        }
-        if (route?.polyline_transit) {
-          const coordsTransit = decodePolyline(route.polyline_transit);
-          setTransitCoords(coordsTransit);
-        }
-      } else {
-        const res = await axiosClient.post("api/routen-vorschlag/", {
-          start_adresse: startAdresse,
-        });
-        setErgebnis(res.data);
-        const sorted = [
-          res.data?.empfohlener_parkplatz,
-          ...(res.data?.alle_parkplaetze || []),
-        ];
-        setAlleVorschlaege(sorted);
-        setFokusParkplatz([
-          sorted[0].parkplatz.latitude,
-          sorted[0].parkplatz.longitude,
-        ]);
-
-        const route = res.data?.empfohlener_parkplatz;
-        if (route?.polyline_auto) {
-          const coords = decodePolyline(route.polyline_auto);
-          setRouteCoords(coords);
-          setStartMarker(coords[0]);
-          setZielMarker(coords[coords.length - 1]);
-        }
-        if (route?.polyline_transit) {
-          const coordsTransit = decodePolyline(route.polyline_transit);
-          setTransitCoords(coordsTransit);
-        }
-      }
+      const route = sorted[0];
+      const start = decodePolyline(route.polyline_auto);
+      setRouteCoords(start);
+      setTransitCoords(decodePolyline(route.polyline_transit || route.polyline_walking));
+      setStartMarker(start[0]);
+      setZielMarker(start[start.length - 1]);
+      setFokusParkplatz([
+        route.parkplatz.latitude,
+        route.parkplatz.longitude,
+      ]);
     } catch (err) {
       console.error("Fehler beim Berechnen der Route:", err);
       setErgebnis({
@@ -177,11 +108,6 @@ const RoutePlanPage = () => {
     const route = ergebnis?.empfohlener_parkplatz;
     if (!route || !route.parkplatz || !stadionId) {
       alert("Fehlende Informationen zum Speichern.");
-      return;
-    }
-
-    if (useDummyData) {
-      alert("💡 Speichern ist im Dummy-Modus deaktiviert.");
       return;
     }
 
@@ -202,6 +128,23 @@ const RoutePlanPage = () => {
     } catch (err) {
       console.error("Fehler beim Speichern der Route:", err);
       alert("Route konnte nicht gespeichert werden.");
+    }
+  };
+
+  const handleParkplatzKlick = (v) => {
+    setFokusParkplatz([v.parkplatz.latitude, v.parkplatz.longitude]);
+    if (v?.polyline_auto) {
+      const coords = decodePolyline(v.polyline_auto);
+      setRouteCoords(coords);
+      setStartMarker(coords[0]);
+      setZielMarker(coords[coords.length - 1]);
+    }
+    const polylineAlt =
+      v.polyline_transit || v.polyline_walking || null;
+    if (polylineAlt) {
+      setTransitCoords(decodePolyline(polylineAlt));
+    } else {
+      setTransitCoords([]);
     }
   };
 
@@ -257,7 +200,7 @@ const RoutePlanPage = () => {
             center={fokusParkplatz || mapCenter}
             zoom={13}
             style={{
-              height: "400px",
+              height: "700px",
               width: "100%",
               marginTop: 20,
               borderRadius: 8,
@@ -318,7 +261,6 @@ const RoutePlanPage = () => {
                   {formatKm(v.distanz_km)}
                 </Popup>
               </CircleMarker>
-              
             ))}
           </MapContainer>
 
@@ -327,12 +269,7 @@ const RoutePlanPage = () => {
             {alleVorschlaege.map((v, i) => (
               <div
                 key={v.parkplatz.id}
-                onClick={() =>
-                  setFokusParkplatz([
-                    v.parkplatz.latitude,
-                    v.parkplatz.longitude,
-                  ])
-                }
+                onClick={() => handleParkplatzKlick(v)}
                 style={{
                   padding: "10px",
                   marginBottom: "10px",
@@ -351,24 +288,23 @@ const RoutePlanPage = () => {
             ))}
           </div>
           <div style={{ marginTop: 10, fontSize: "14px", color: "#555" }}>
-              <strong>Legende:</strong>
-              <br />
-              <span style={{ color: markerColors.start }}>⬤</span> Startadresse
-              <br />
-              <span style={{ color: markerColors.ziel }}>⬤</span> Ziel
-              (empfohlener Parkplatz)
-              <br />
-              <span style={{ color: markerColors.bester }}>⬤</span> Bester
-              Vorschlag
-              <br />
-              <span style={{ color: markerColors.vorschlag }}>⬤</span> Weitere
-              Parkplätze
-              <br />
-              <span style={{ color: markerColors.route }}>▬</span> Auto-Route
-              <br />
-              <span style={{ color: markerColors.transit }}>▬</span>{" "}
-              Transit-/Fußweg
-            </div>
+            <strong>Legende:</strong>
+            <br />
+            <span style={{ color: markerColors.start }}>⬤</span> Startadresse
+            <br />
+            <span style={{ color: markerColors.ziel }}>⬤</span> Ziel
+            (empfohlener Parkplatz)
+            <br />
+            <span style={{ color: markerColors.bester }}>⬤</span> Bester
+            Vorschlag
+            <br />
+            <span style={{ color: markerColors.vorschlag }}>⬤</span> Weitere
+            Parkplätze
+            <br />
+            <span style={{ color: markerColors.route }}>▬</span> Auto-Route
+            <br />
+            <span style={{ color: markerColors.transit }}>▬</span> Transit-/Fußweg
+          </div>
         </>
       )}
     </div>

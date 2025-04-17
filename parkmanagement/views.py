@@ -8,7 +8,6 @@ from django.contrib.auth.models import User
 
 from parkmanagement.utils import (
     berechne_gesamtzeit_mit_transit_und_walk,
-    berechne_route,
 )
 from .models import Parkplatz, Route, Stadion, Verein
 from .serializers import (

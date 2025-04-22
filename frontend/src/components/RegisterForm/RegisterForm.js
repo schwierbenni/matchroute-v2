@@ -17,7 +17,7 @@ const RegisterForm = () => {
 
   // Vereine beim Laden der Komponenten abrufen
   useEffect(() => {
-    axios.get(`${process.env.REACT_APP_API_URL}/parkplatz/verein/`)
+    axios.get(`${process.env.REACT_APP_API_URL}/api/verein/`)
         .then((response) => setVereine(response.data))
         .catch((err) => console.error('Fehler beim Laden der Vereine:', err));
     }, []);

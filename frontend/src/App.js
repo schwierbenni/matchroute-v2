@@ -1,5 +1,5 @@
 import React, { useState, useEffect, createContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './components/LoginForm/LoginForm';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';

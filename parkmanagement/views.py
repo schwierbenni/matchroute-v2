@@ -4,7 +4,11 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework import viewsets, generics
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes
 from django.contrib.auth.models import User
+from django.conf import settings
+
+import requests
 
 from parkmanagement.utils import (
     berechne_gesamtzeit_mit_transit_und_walk,
@@ -19,18 +23,12 @@ from .serializers import (
 )
 
 
-# Dieses ViewSet wird verwendet, um die Parkplatz-API zu erstellen.
-# Es ermöglicht das Erstellen, Bearbeiten, Löschen und Abrufen von Parkplätzen.
 class ParkplatzViewSet(viewsets.ModelViewSet):
-    # queryset definiert die Daten, die von der API zurückgegeben werden.
     queryset = Parkplatz.objects.all()
-    # serializer_class definiert den Serializer, der verwendet wird, um die Daten zu serialisieren.
     serializer_class = ParkplatzSerializer
     # permission_classes = [IsAuthenticated]
 
 
-# Diese View wird verwendet, um die Registrierung eines neuen Benutzers zu ermöglichen.
-# API, die nur die Anlage eines neuen Benutzers ermöglicht.
 class UserRegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserRegisterSerializer
@@ -106,8 +104,7 @@ class RouteSuggestionView(APIView):
             return Response({"detail": "Keine Route gefunden."}, status=400)
 
         bester = min(vorschlaege, key=lambda x: x["gesamtzeit"])
-
-        alle_ohne_bester = [vorschlag for vorschlag in vorschlaege if vorschlag != bester]
+        alle_ohne_bester = [v for v in vorschlaege if v != bester]
 
         return Response(
             {"empfohlener_parkplatz": bester, "alle_parkplaetze": alle_ohne_bester},
@@ -115,8 +112,6 @@ class RouteSuggestionView(APIView):
         )
 
 
-# Diese View wird verwendet, um eine Route zu speichern.
-# Wenn der Benutzer im Frontend eine Navigation startet, sollen im Backend die Eckdaten zur Route abgespeichert werden.
 class RouteSpeichernView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -129,25 +124,34 @@ class RouteSpeichernView(APIView):
             parkplatz = Parkplatz.objects.get(id=data.get("parkplatz_id"))
         except (Stadion.DoesNotExist, Parkplatz.DoesNotExist):
             return Response(
-                {"detail": "Stadion oder Parkplatz nicht gefunden."}, status=400
+                {"detail": "Stadion oder Parkplatz nicht gefunden."},
+                status=400
             )
 
-        route = Route.objects.create(
-            benutzer=user,
-            stadion=stadion,
-            parkplatz=parkplatz,
-            start_adresse=data.get("start_adresse"),
-            start_latitude=data.get("start_lat"),
-            start_longitude=data.get("start_lng"),
-            strecke_km=data.get("distanz_km"),
-            dauer_min=data.get("dauer_min"),
-            transportmittel=data.get("transportmittel", "auto"),
-            route_url=data.get("route_url"),
-        )
+        try:
+            route = Route.objects.create(
+                benutzer=user,
+                stadion=stadion,
+                parkplatz=parkplatz,
+                start_adresse=data.get("start_adresse"),
+                start_latitude=data.get("start_lat"),
+                start_longitude=data.get("start_lng"),
+                strecke_km=data.get("distanz_km"),
+                dauer_minuten=data.get("dauer_min"),  
+                transportmittel=data.get("transportmittel", "auto"),
+                route_url=data.get("route_url"),
+            )
 
-        return Response(
-            {"detail": "Route gespeichert.", "route_id": route.id}, status=201
-        )
+            return Response(
+                {"detail": "Route gespeichert.", "route_id": route.id},
+                status=201
+            )
+
+        except Exception as e:
+            return Response(
+                {"detail": f"Fehler beim Speichern der Route: {str(e)}"},
+                status=500
+            )
 
 
 class ProfilView(APIView):
@@ -165,3 +169,32 @@ class ProfilView(APIView):
                 "stadion": StadionSerializer(stadion).data if stadion else None
             }
         )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def graphhopper_route(request):
+    start = request.query_params.get("start")
+    ziel = request.query_params.get("ziel")
+    profile = request.query_params.get("profile", "foot")
+
+    if not start or not ziel:
+        return Response({"detail": "Start und Ziel müssen angegeben werden."}, status=400)
+
+    url = "https://graphhopper.com/api/1/route"
+    params = {
+        "point": [start, ziel],
+        "profile": profile,
+        "instructions": "true",
+        "locale": "de",
+        "key": settings.GRAPH_HOPPER_API_KEY,
+    }
+
+    try:
+        resp = requests.get(url, params=params)
+        resp.raise_for_status()
+        data = resp.json()
+        instructions = data.get("paths", [{}])[0].get("instructions", [])
+        return Response({"instructions": instructions})
+    except Exception as e:
+        return Response({"detail": f"Fehler bei der Anfrage an GraphHopper: {str(e)}"}, status=500)

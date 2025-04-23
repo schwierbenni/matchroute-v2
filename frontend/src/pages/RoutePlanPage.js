@@ -6,10 +6,10 @@ import {
   Polyline,
   Popup,
   useMap,
+  CircleMarker,
 } from "react-leaflet";
 import { decodePolyline } from "../utils/decodePolyline";
 import "leaflet/dist/leaflet.css";
-import { CircleMarker } from "react-leaflet";
 
 const markerColors = {
   start: "red",
@@ -17,7 +17,7 @@ const markerColors = {
   bester: "green",
   vorschlag: "blue",
   route: "blue",
-  transit: "green"
+  transit: "green",
 };
 
 const formatMinutes = (min) => {
@@ -49,6 +49,9 @@ const RoutePlanPage = () => {
   const [alleVorschlaege, setAlleVorschlaege] = useState([]);
   const [stadionId, setStadionId] = useState(null);
   const [fokusParkplatz, setFokusParkplatz] = useState(null);
+  const [anleitung, setAnleitung] = useState([]);
+  const [zeigeAnleitung, setZeigeAnleitung] = useState(false);
+  const [aktiverParkplatz, setAktiverParkplatz] = useState(null);
 
   useEffect(() => {
     const fetchProfil = async () => {
@@ -66,34 +69,31 @@ const RoutePlanPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setErgebnis(null);
-    setRouteCoords([]);
-    setTransitCoords([]);
-    setStartMarker(null);
-    setZielMarker(null);
+    resetRouteData();
 
     try {
       const res = await axiosClient.post("api/routen-vorschlag/", {
         start_adresse: startAdresse,
       });
-      setErgebnis(res.data);
 
       const sorted = [
         res.data?.empfohlener_parkplatz,
         ...(res.data?.alle_parkplaetze || []),
       ];
       setAlleVorschlaege(sorted);
+      setErgebnis(res.data);
 
       const route = sorted[0];
-      const start = decodePolyline(route.polyline_auto);
-      setRouteCoords(start);
+      const coords = decodePolyline(route.polyline_auto);
+      setRouteCoords(coords);
       setTransitCoords(decodePolyline(route.polyline_transit || route.polyline_walking));
-      setStartMarker(start[0]);
-      setZielMarker(start[start.length - 1]);
+      setStartMarker(coords[0]);
+      setZielMarker(coords[coords.length - 1]);
       setFokusParkplatz([
         route.parkplatz.latitude,
         route.parkplatz.longitude,
       ]);
+      setAktiverParkplatz(route);
     } catch (err) {
       console.error("Fehler beim Berechnen der Route:", err);
       setErgebnis({
@@ -104,31 +104,14 @@ const RoutePlanPage = () => {
     setIsLoading(false);
   };
 
-  const handleSaveRoute = async () => {
-    const route = ergebnis?.empfohlener_parkplatz;
-    if (!route || !route.parkplatz || !stadionId) {
-      alert("Fehlende Informationen zum Speichern.");
-      return;
-    }
-
-    try {
-      await axiosClient.post("api/route/speichern/", {
-        start_adresse: startAdresse,
-        start_lat: startMarker?.[0],
-        start_lng: startMarker?.[1],
-        distanz_km: route.distanz_km,
-        dauer_min: route.gesamtzeit,
-        transportmittel: route.beste_methode?.toLowerCase() || "auto",
-        stadion_id: stadionId,
-        parkplatz_id: route.parkplatz.id,
-        route_url: null,
-      });
-
-      alert("Route erfolgreich gespeichert.");
-    } catch (err) {
-      console.error("Fehler beim Speichern der Route:", err);
-      alert("Route konnte nicht gespeichert werden.");
-    }
+  const resetRouteData = () => {
+    setErgebnis(null);
+    setRouteCoords([]);
+    setTransitCoords([]);
+    setStartMarker(null);
+    setZielMarker(null);
+    setAnleitung([]);
+    setZeigeAnleitung(false);
   };
 
   const handleParkplatzKlick = (v) => {
@@ -139,33 +122,72 @@ const RoutePlanPage = () => {
       setStartMarker(coords[0]);
       setZielMarker(coords[coords.length - 1]);
     }
-    const polylineAlt =
-      v.polyline_transit || v.polyline_walking || null;
-    if (polylineAlt) {
-      setTransitCoords(decodePolyline(polylineAlt));
-    } else {
-      setTransitCoords([]);
+    const polylineAlt = v.polyline_transit || v.polyline_walking;
+    setTransitCoords(polylineAlt ? decodePolyline(polylineAlt) : []);
+    setAktiverParkplatz(v);
+  };
+
+  const handleSaveRoute = async () => {
+    const route = aktiverParkplatz;
+    if (!route || !route.parkplatz || !stadionId) {
+      alert("Fehlende Informationen zum Speichern.");
+      return;
+    }
+  
+    try {
+      await axiosClient.post("api/routen/speichern/", {
+        start_adresse: startAdresse,
+        start_lat: startMarker?.[0],
+        start_lng: startMarker?.[1],
+        distanz_km: route.distanz_km,
+        dauer_min: route.gesamtzeit,
+        transportmittel: route.beste_methode?.toLowerCase() || "auto",
+        stadion_id: stadionId,
+        parkplatz_id: route.parkplatz.id,
+        route_url: null,
+      });
+      alert("Route erfolgreich gespeichert.");
+    } catch (err) {
+      console.error("Fehler beim Speichern der Route:", err);
+      alert("Route konnte nicht gespeichert werden.");
+    }
+  };
+
+  const handleStartNavigation = async () => {
+    if (!startMarker || !zielMarker) {
+      alert("Start- und Zielposition fehlen.");
+      return;
+    }
+
+    const start = `${startMarker[0]},${startMarker[1]}`;
+    const ziel = `${zielMarker[0]},${zielMarker[1]}`;
+
+    try {
+      const res = await axiosClient.get("/api/navigation", {
+        params: { start, ziel, profile: "foot" },
+      });
+
+      setAnleitung(res.data.instructions || []);
+      setZeigeAnleitung(true);
+    } catch (err) {
+      console.error("Fehler bei der Navigation:", err);
+      alert("Fehler beim Abrufen der Navigation.");
     }
   };
 
   const mapCenter =
     routeCoords.length > 0
       ? routeCoords[Math.floor(routeCoords.length / 2)]
-      : alleVorschlaege.length > 0
-      ? [
-          alleVorschlaege[0].parkplatz.latitude,
-          alleVorschlaege[0].parkplatz.longitude,
-        ]
       : [53.5511, 9.9937];
 
   return (
     <div style={{ maxWidth: 700, margin: "40px auto", fontFamily: "Segoe UI" }}>
-      <h2>🧭 Route planen</h2>
+      <h2>Route planen</h2>
 
       <form onSubmit={handleSubmit}>
         <input
           type="text"
-          placeholder="Startadresse (z. B. Hamburg, ABC-Straße)"
+          placeholder="Startadresse"
           value={startAdresse}
           onChange={(e) => setStartAdresse(e.target.value)}
           required
@@ -188,7 +210,7 @@ const RoutePlanPage = () => {
             cursor: "pointer",
           }}
         >
-          ➕ Route berechnen
+          Route berechnen
         </button>
       </form>
 
@@ -199,65 +221,27 @@ const RoutePlanPage = () => {
           <MapContainer
             center={fokusParkplatz || mapCenter}
             zoom={13}
-            style={{
-              height: "700px",
-              width: "100%",
-              marginTop: 20,
-              borderRadius: 8,
-            }}
+            style={{ height: "500px", width: "100%", marginTop: 20, borderRadius: 8 }}
           >
             <FlyTo position={fokusParkplatz} />
             <TileLayer
-              attribution="&copy; OpenStreetMap"
+              attribution='&copy; OpenStreetMap'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-
-            {routeCoords.length > 0 && (
-              <Polyline positions={routeCoords} color={markerColors.route} />
-            )}
-            {transitCoords.length > 0 && (
-              <Polyline
-                positions={transitCoords}
-                color={markerColors.transit}
-                dashArray="6"
-              />
-            )}
-
-            {startMarker && (
-              <CircleMarker
-                center={startMarker}
-                radius={8}
-                pathOptions={{ color: markerColors.start, fillOpacity: 0.6 }}
-              >
-                <Popup>Startadresse</Popup>
-              </CircleMarker>
-            )}
-
-            {zielMarker && (
-              <CircleMarker
-                center={zielMarker}
-                radius={8}
-                pathOptions={{ color: markerColors.ziel, fillOpacity: 0.6 }}
-              >
-                <Popup>Empfohlener Parkplatz</Popup>
-              </CircleMarker>
-            )}
-
+            {routeCoords.length > 0 && <Polyline positions={routeCoords} color={markerColors.route} />}
+            {transitCoords.length > 0 && <Polyline positions={transitCoords} color={markerColors.transit} dashArray="6" />}
+            {startMarker && <CircleMarker center={startMarker} radius={8} pathOptions={{ color: markerColors.start }}><Popup>Start</Popup></CircleMarker>}
+            {zielMarker && <CircleMarker center={zielMarker} radius={8} pathOptions={{ color: markerColors.ziel }}><Popup>Ziel</Popup></CircleMarker>}
             {alleVorschlaege.map((v, i) => (
               <CircleMarker
                 key={v.parkplatz.id}
                 center={[v.parkplatz.latitude, v.parkplatz.longitude]}
                 radius={8}
-                pathOptions={{
-                  color: i === 0 ? markerColors.bester : markerColors.vorschlag,
-                  fillOpacity: 0.6,
-                }}
+                pathOptions={{ color: i === 0 ? markerColors.bester : markerColors.vorschlag }}
               >
                 <Popup>
-                  <strong>{v.parkplatz.name}</strong>
-                  <br />
-                  {formatMinutes(v.gesamtzeit)}
-                  <br />
+                  <strong>{v.parkplatz.name}</strong><br />
+                  {formatMinutes(v.gesamtzeit)}<br />
                   {formatKm(v.distanz_km)}
                 </Popup>
               </CircleMarker>
@@ -277,34 +261,46 @@ const RoutePlanPage = () => {
                   borderRadius: 6,
                   backgroundColor: i === 0 ? "#e8f5e9" : "#f9f9f9",
                   cursor: "pointer",
-                  boxShadow: i === 0 ? "0 0 6px rgba(0, 128, 0, 0.3)" : "none",
                 }}
               >
                 <p style={{ margin: 0, fontWeight: 600 }}>{v.parkplatz.name}</p>
-                <p style={{ margin: 0 }}>
-                  {formatMinutes(v.gesamtzeit)} · 📏 {formatKm(v.distanz_km)}
-                </p>
+                <p style={{ margin: 0 }}>{formatMinutes(v.gesamtzeit)} · 📏 {formatKm(v.distanz_km)}</p>
               </div>
             ))}
+
+            <div style={{ marginTop: 16 }}>
+              <button onClick={handleSaveRoute} style={{
+                padding: "10px 16px", marginRight: "10px",
+                backgroundColor: "#43a047", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer"
+              }}>Route speichern</button>
+
+              <button onClick={handleStartNavigation} style={{
+                padding: "10px 16px",
+                backgroundColor: "#1976d2", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer"
+              }}>Navigation starten</button>
+            </div>
           </div>
-          <div style={{ marginTop: 10, fontSize: "14px", color: "#555" }}>
-            <strong>Legende:</strong>
-            <br />
-            <span style={{ color: markerColors.start }}>⬤</span> Startadresse
-            <br />
-            <span style={{ color: markerColors.ziel }}>⬤</span> Ziel
-            (empfohlener Parkplatz)
-            <br />
-            <span style={{ color: markerColors.bester }}>⬤</span> Bester
-            Vorschlag
-            <br />
-            <span style={{ color: markerColors.vorschlag }}>⬤</span> Weitere
-            Parkplätze
-            <br />
-            <span style={{ color: markerColors.route }}>▬</span> Auto-Route
-            <br />
-            <span style={{ color: markerColors.transit }}>▬</span> Transit-/Fußweg
-          </div>
+
+          {zeigeAnleitung && anleitung.length > 0 && (
+            <div style={{
+              marginTop: 30,
+              maxHeight: "250px",
+              overflowY: "scroll",
+              padding: "15px",
+              backgroundColor: "#f4f4f4",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+            }}>
+              <h4>Routenbeschreibung</h4>
+              <ol>
+                {anleitung.map((step, idx) => (
+                  <li key={idx} style={{ marginBottom: "8px" }}>
+                    {step.text} ({formatKm(step.distance)})
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
         </>
       )}
     </div>

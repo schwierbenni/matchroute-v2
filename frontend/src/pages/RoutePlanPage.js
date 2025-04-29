@@ -52,12 +52,16 @@ const RoutePlanPage = () => {
   const [anleitung, setAnleitung] = useState([]);
   const [zeigeAnleitung, setZeigeAnleitung] = useState(false);
   const [aktiverParkplatz, setAktiverParkplatz] = useState(null);
+  const [stadion, setStadion] = useState(null);
+  const [verein, setVerein] = useState(null);
 
   useEffect(() => {
     const fetchProfil = async () => {
       try {
         const res = await axiosClient.get("api/profil/");
         const id = res.data?.stadion?.id;
+        setStadion(res.data?.stadion);
+        setVerein(res.data?.lieblingsverein);
         if (id) setStadionId(id);
       } catch (err) {
         console.error("Profil konnte nicht geladen werden:", err);
@@ -86,13 +90,12 @@ const RoutePlanPage = () => {
       const route = sorted[0];
       const coords = decodePolyline(route.polyline_auto);
       setRouteCoords(coords);
-      setTransitCoords(decodePolyline(route.polyline_transit || route.polyline_walking));
+      setTransitCoords(
+        decodePolyline(route.polyline_transit || route.polyline_walking)
+      );
       setStartMarker(coords[0]);
       setZielMarker(coords[coords.length - 1]);
-      setFokusParkplatz([
-        route.parkplatz.latitude,
-        route.parkplatz.longitude,
-      ]);
+      setFokusParkplatz([route.parkplatz.latitude, route.parkplatz.longitude]);
       setAktiverParkplatz(route);
     } catch (err) {
       console.error("Fehler beim Berechnen der Route:", err);
@@ -133,7 +136,7 @@ const RoutePlanPage = () => {
       alert("Fehlende Informationen zum Speichern.");
       return;
     }
-  
+
     try {
       await axiosClient.post("api/routen/speichern/", {
         start_adresse: startAdresse,
@@ -181,129 +184,196 @@ const RoutePlanPage = () => {
       : [53.5511, 9.9937];
 
   return (
-    <div style={{ maxWidth: 700, margin: "40px auto", fontFamily: "Segoe UI" }}>
-      <h2>Route planen</h2>
+    <main className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8 text-center">Routenplaner</h1>
+      <div>
+        <h2 className="text-xl font-semibold mb-4 text-center">
+          Herzlich Willkommen beim Routenplaner
+        </h2>
+        <h3 className="text-xl font-light mb-4 text-center">
+          Gib einfach deine Startadresse ein und klicke auf den Button.
+          Anschließend schlägt dir das System den bestmöglichen Parkplatz rund um       
+            <strong> {verein?.stadt || "—"} </strong> vor.
+        </h3>
+      </div>
+      <div className="bg-white border rounded-lg shadow-sm p-6">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-xl font-bold">
+              {stadion?.name || "Stadionname"}
+            </h2>
+            <p className="text-sm text-gray-500">
+              {stadion?.adresse || "Stadionadresse"}
+            </p>
+          </div>
+        </div>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Startadresse"
-          value={startAdresse}
-          onChange={(e) => setStartAdresse(e.target.value)}
-          required
-          style={{
-            padding: "10px",
-            width: "100%",
-            marginBottom: "12px",
-            borderRadius: "8px",
-            border: "1px solid #ccc",
-          }}
-        />
-        <button
-          type="submit"
-          style={{
-            padding: "10px 20px",
-            borderRadius: "8px",
-            backgroundColor: "#3f51b5",
-            color: "white",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          Route berechnen
-        </button>
-      </form>
+        <div className="rounded overflow-hidden border mb-3">
+          <img
+            src={stadion?.bild_url || "/placeholder.svg"}
+            alt="Stadion"
+            className="w-full h-40 object-cover"
+          />
+        </div>
 
-      {isLoading && <p style={{ marginTop: 16 }}>⏳ Route wird berechnet...</p>}
-
-      {alleVorschlaege.length > 0 && (
-        <>
-          <MapContainer
-            center={fokusParkplatz || mapCenter}
-            zoom={13}
-            style={{ height: "500px", width: "100%", marginTop: 20, borderRadius: 8 }}
-          >
-            <FlyTo position={fokusParkplatz} />
-            <TileLayer
-              attribution='&copy; OpenStreetMap'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            {routeCoords.length > 0 && <Polyline positions={routeCoords} color={markerColors.route} />}
-            {transitCoords.length > 0 && <Polyline positions={transitCoords} color={markerColors.transit} dashArray="6" />}
-            {startMarker && <CircleMarker center={startMarker} radius={8} pathOptions={{ color: markerColors.start }}><Popup>Start</Popup></CircleMarker>}
-            {zielMarker && <CircleMarker center={zielMarker} radius={8} pathOptions={{ color: markerColors.ziel }}><Popup>Ziel</Popup></CircleMarker>}
-            {alleVorschlaege.map((v, i) => (
-              <CircleMarker
-                key={v.parkplatz.id}
-                center={[v.parkplatz.latitude, v.parkplatz.longitude]}
-                radius={8}
-                pathOptions={{ color: i === 0 ? markerColors.bester : markerColors.vorschlag }}
+        <div className="text-sm space-y-1">
+          <p>
+            <strong>Team:</strong> {verein?.name || "—"}
+          </p>
+          <p>
+            <strong>Stadt:</strong> {verein?.stadt || "—"}
+          </p>
+          <p>
+            <strong>Liga:</strong> {verein?.liga || "—"}
+          </p>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Linke Spalte – Eingabe & Buttons */}
+        <div className="space-y-6">
+          <div className="bg-white border rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-semibold mb-4">Startadresse</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <input
+                type="text"
+                placeholder="z. B. Hamburg, ABC-Straße"
+                value={startAdresse}
+                onChange={(e) => setStartAdresse(e.target.value)}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md"
               >
-                <Popup>
-                  <strong>{v.parkplatz.name}</strong><br />
-                  {formatMinutes(v.gesamtzeit)}<br />
-                  {formatKm(v.distanz_km)}
-                </Popup>
-              </CircleMarker>
-            ))}
-          </MapContainer>
-
-          <div style={{ marginTop: 16 }}>
-            <h4>Parkplätze (sortiert nach Dauer)</h4>
-            {alleVorschlaege.map((v, i) => (
-              <div
-                key={v.parkplatz.id}
-                onClick={() => handleParkplatzKlick(v)}
-                style={{
-                  padding: "10px",
-                  marginBottom: "10px",
-                  border: "1px solid #ccc",
-                  borderRadius: 6,
-                  backgroundColor: i === 0 ? "#e8f5e9" : "#f9f9f9",
-                  cursor: "pointer",
-                }}
-              >
-                <p style={{ margin: 0, fontWeight: 600 }}>{v.parkplatz.name}</p>
-                <p style={{ margin: 0 }}>{formatMinutes(v.gesamtzeit)} · 📏 {formatKm(v.distanz_km)}</p>
-              </div>
-            ))}
-
-            <div style={{ marginTop: 16 }}>
-              <button onClick={handleSaveRoute} style={{
-                padding: "10px 16px", marginRight: "10px",
-                backgroundColor: "#43a047", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer"
-              }}>Route speichern</button>
-
-              <button onClick={handleStartNavigation} style={{
-                padding: "10px 16px",
-                backgroundColor: "#1976d2", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer"
-              }}>Navigation starten</button>
-            </div>
+                Route berechnen
+              </button>
+            </form>
           </div>
 
-          {zeigeAnleitung && anleitung.length > 0 && (
-            <div style={{
-              marginTop: 30,
-              maxHeight: "250px",
-              overflowY: "scroll",
-              padding: "15px",
-              backgroundColor: "#f4f4f4",
-              borderRadius: "8px",
-              border: "1px solid #ccc",
-            }}>
-              <h4>Routenbeschreibung</h4>
-              <ol>
-                {anleitung.map((step, idx) => (
-                  <li key={idx} style={{ marginBottom: "8px" }}>
-                    {step.text} ({formatKm(step.distance)})
-                  </li>
-                ))}
-              </ol>
+          <div className="bg-white border rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold mb-4">Aktionen</h2>
+            <div className="space-y-3">
+              <button
+                onClick={handleSaveRoute}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md"
+              >
+                Route speichern
+              </button>
+              <button
+                onClick={handleStartNavigation}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md"
+              >
+                Navigation starten
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 🗺 Rechte Spalte – Karte & Legende */}
+        <div className="space-y-6">
+          <div className="rounded-lg overflow-hidden border shadow-sm">
+            <MapContainer
+              center={fokusParkplatz || mapCenter}
+              zoom={13}
+              style={{ height: "400px", width: "100%" }}
+            >
+              <FlyTo position={fokusParkplatz} />
+              <TileLayer
+                attribution="&copy; OpenStreetMap"
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              {routeCoords.length > 0 && (
+                <Polyline positions={routeCoords} color="blue" />
+              )}
+              {transitCoords.length > 0 && (
+                <Polyline
+                  positions={transitCoords}
+                  color="green"
+                  dashArray="6"
+                />
+              )}
+              {startMarker && (
+                <CircleMarker
+                  center={startMarker}
+                  radius={8}
+                  pathOptions={{ color: "red" }}
+                >
+                  <Popup>Startadresse</Popup>
+                </CircleMarker>
+              )}
+              {zielMarker && (
+                <CircleMarker
+                  center={zielMarker}
+                  radius={8}
+                  pathOptions={{ color: "black" }}
+                >
+                  <Popup>Parkplatz</Popup>
+                </CircleMarker>
+              )}
+            </MapContainer>
+          </div>
+
+          {alleVorschlaege.length > 0 && (
+            <div className="bg-white border rounded-lg shadow-sm p-6 space-y-4">
+              <h3 className="text-lg font-semibold mb-4">
+                Parkplätze (nach Dauer sortiert)
+              </h3>
+
+              <div className="grid gap-4">
+                {alleVorschlaege
+                  .sort((a, b) => a.gesamtzeit - b.gesamtzeit)
+                  .map((v, i) => (
+                    <div
+                      key={v.parkplatz.id}
+                      onClick={() => handleParkplatzKlick(v)}
+                      className={`cursor-pointer p-4 border rounded-md transition hover:shadow-md ${
+                        i === 0 ? "bg-green-50 border-green-400" : "bg-gray-50"
+                      }`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h4 className="text-md font-semibold">
+                            {v.parkplatz.name}
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {formatMinutes(v.gesamtzeit)} · 📏{" "}
+                            {formatKm(v.distanz_km)}
+                          </p>
+                        </div>
+                        {i === 0 && (
+                          <span className="text-xs px-2 py-1 bg-green-600 text-white rounded-full font-medium">
+                            Empfohlen
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
             </div>
           )}
-        </>
-      )}
-    </div>
+
+          <div className="bg-white border rounded-lg p-4 shadow-sm">
+            <h3 className="font-medium text-lg mb-2">Legende</h3>
+            <ul className="text-sm text-gray-700 space-y-1">
+              <li>
+                <span className="text-blue-600 font-bold">▬</span> Auto-Route
+              </li>
+              <li>
+                <span className="text-green-600 font-bold">▬</span>{" "}
+                Transit-/Fußweg
+              </li>
+              <li>
+                <span className="text-red-600 font-bold">⬤</span> Startadresse
+              </li>
+              <li>
+                <span className="text-black font-bold">⬤</span> Ziel (Parkplatz)
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </main>
   );
 };
 

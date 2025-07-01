@@ -11,9 +11,12 @@ from django.conf import settings
 import requests
 
 from parkmanagement.utils import (
-    berechne_gesamtzeit_mit_transit_und_walk,
-    generiere_gpt_verkehrstext,
-    hole_wetter,
+    berechne_gesamtzeit_mit_realistischer_bewertung, 
+    berechne_optimierte_parkplatz_empfehlung,
+    generiere_intelligenten_verkehrskommentar,
+    hole_wetter_mit_verkehrseinfluss,
+    berechne_google_route,
+    geocode_adresse,
 )
 from .models import Parkplatz, Route, Stadion, Verein
 from .serializers import (
@@ -57,6 +60,10 @@ class RouteViewSet(viewsets.ModelViewSet):
 
 
 class RouteSuggestionView(APIView):
+    """
+    Optimierte Route-Suggestion mit vollständiger Google Maps Integration
+    und realistischer Verkehrsbewertung.
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -67,59 +74,64 @@ class RouteSuggestionView(APIView):
             stadion = user.profil.lieblingsverein.stadien.first()
         except AttributeError:
             return Response(
-                {"detail": "Kein Lieblingsverein oder Stadion gefunden."}, status=400
+                {"detail": "Kein Lieblingsverein oder Stadion gefunden."}, 
+                status=400
             )
 
         parkplaetze = stadion.parkplaetze.all()
-        vorschlaege = []
-
-        for parkplatz in parkplaetze:
-            result = berechne_gesamtzeit_mit_transit_und_walk(
-                start_adresse, parkplatz, stadion
+        
+        if not parkplaetze.exists():
+            return Response(
+                {"detail": "Keine Parkplätze für das Stadion gefunden."}, 
+                status=400
             )
 
-            if result:
-                
-                wetter = hole_wetter(stadion.latitude, stadion.longitude)
-                
-                gpt_kommentar = generiere_gpt_verkehrstext(
-                    dauer_min=result.get("dauer_traffic"),
-                    dauer_normal_min = result.get("dauer_auto"),
-                    wetter=wetter,
-                    ort = stadion.name
-                )
-                
-                vorschlaege.append(
-                    {
-                        "parkplatz": {
-                            "id": parkplatz.id,
-                            "name": parkplatz.name,
-                            "latitude": float(parkplatz.latitude),
-                            "longitude": float(parkplatz.longitude),
-                        },
-                        "dauer_auto": result.get("dauer_auto"),
-                        "dauer_traffic": result.get("dauer_traffic"),
-                        "verkehr_bewertung": result.get("verkehr_bewertung"),
-                        "verkehr_kommentar": gpt_kommentar,
-                        "dauer_transit": result.get("dauer_transit"),
-                        "dauer_walking": result.get("dauer_walking"),
-                        "beste_methode": result.get("beste_methode"),
-                        "gesamtzeit": result.get("gesamt_min"),
-                        "distanz_km": result.get("distanz_km"),
-                        "polyline_auto": result.get("polyline_auto"),
-                        "polyline_transit": result.get("polyline_transit"),
-                        "polyline_walking": result.get("polyline_walking"),
-                    }
-                )
+        # Optimierte Batch-Berechnung verwenden
+        vorschlaege = berechne_optimierte_parkplatz_empfehlung(
+            start_adresse, parkplaetze, stadion
+        )
 
         if not vorschlaege:
-            return Response({"detail": "Keine Route gefunden."}, status=400)
+            return Response(
+                {"detail": "Keine Route gefunden. Bitte überprüfen Sie Ihre Startadresse."}, 
+                status=400
+            )
 
-        bester = min(vorschlaege, key=lambda x: x["gesamtzeit"])
-        alle_ohne_bester = [v for v in vorschlaege if v != bester]
+        # Wetter für GPT-Kommentar beim besten Vorschlag
+        bester = vorschlaege[0]
+        
+        try:
+            wetter_data = hole_wetter_mit_verkehrseinfluss(
+                stadion.latitude, stadion.longitude
+            )
+            
+            # Intelligenten Kommentar generieren
+            enhanced_kommentar = generiere_intelligenten_verkehrskommentar(
+                verkehr_score=bester.get("verkehr_bewertung", 3),
+                verzoegerung_min=bester.get("dauer_traffic", 0) - bester.get("dauer_auto", 0),
+                wetter_data=wetter_data,
+                tageszeit=request.META.get('HTTP_DATE')  # Optional: Zeit aus Request
+            )
+            
+            bester["verkehr_kommentar"] = enhanced_kommentar
+            bester["wetter_info"] = wetter_data.get("formatted", "")
+            
+        except Exception as e:
+            print(f"Wetter/GPT Fehler: {e}")
+            # Fallback bleibt bestehen
+
+        alle_ohne_bester = vorschlaege[1:]
 
         return Response(
-            {"empfohlener_parkplatz": bester, "alle_parkplaetze": alle_ohne_bester},
+            {
+                "empfohlener_parkplatz": bester, 
+                "alle_parkplaetze": alle_ohne_bester,
+                "meta": {
+                    "total_options": len(vorschlaege),
+                    "calculation_time": "live",
+                    "data_source": "Google Maps API"
+                }
+            },
             status=200,
         )
 
@@ -155,7 +167,11 @@ class RouteSpeichernView(APIView):
             )
 
             return Response(
-                {"detail": "Route gespeichert.", "route_id": route.id},
+                {
+                    "detail": "Route erfolgreich gespeichert.", 
+                    "route_id": route.id,
+                    "saved_at": route.erstelldatum.isoformat()
+                },
                 status=201
             )
 
@@ -170,43 +186,187 @@ class ProfilView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        profil = request.user.profil
-        lieblingsverein = profil.lieblingsverein
-        stadion = lieblingsverein.stadien.first() if lieblingsverein else None
-        return Response(
-            {
-                "username": request.user.username,
-                "email": request.user.email,
-                "lieblingsverein": VereinSerializer(lieblingsverein).data if lieblingsverein else None,
-                "stadion": StadionSerializer(stadion).data if stadion else None
-            }
-        )
+        try:
+            profil = request.user.profil
+            lieblingsverein = profil.lieblingsverein
+            stadion = lieblingsverein.stadien.first() if lieblingsverein else None
+            
+            return Response(
+                {
+                    "username": request.user.username,
+                    "email": request.user.email,
+                    "lieblingsverein": VereinSerializer(lieblingsverein).data if lieblingsverein else None,
+                    "stadion": StadionSerializer(stadion).data if stadion else None,
+                    "member_since": request.user.date_joined.isoformat(),
+                    "profile_complete": bool(lieblingsverein and stadion)
+                }
+            )
+        except Exception as e:
+            return Response(
+                {"detail": f"Fehler beim Laden des Profils: {str(e)}"},
+                status=500
+            )
 
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def graphhopper_route(request):
+def google_route_details(request):
+    """
+    Ersatz für GraphHopper - detaillierte Routeninformationen über Google Directions API.
+    Bietet erweiterte Funktionalität wie turn-by-turn Navigation.
+    """
     start = request.query_params.get("start")
     ziel = request.query_params.get("ziel")
-    profile = request.query_params.get("profile", "foot")
+    mode = request.query_params.get("mode", "walking")  # walking, driving, transit, bicycling
 
     if not start or not ziel:
-        return Response({"detail": "Start und Ziel müssen angegeben werden."}, status=400)
+        return Response(
+            {"detail": "Start und Ziel müssen angegeben werden."}, 
+            status=400
+        )
 
-    url = "https://graphhopper.com/api/1/route"
+    # Google Directions API für detaillierte Wegbeschreibungen
+    url = "https://maps.googleapis.com/maps/api/directions/json"
     params = {
-        "point": [start, ziel],
-        "profile": profile,
-        "instructions": "true",
-        "locale": "de",
-        "key": settings.GRAPH_HOPPER_API_KEY,
+        "origin": start,
+        "destination": ziel,
+        "mode": mode,
+        "language": "de",
+        "region": "DE",
+        "key": settings.GOOGLE_MAPS_API_KEY,
     }
 
     try:
-        resp = requests.get(url, params=params)
-        resp.raise_for_status()
-        data = resp.json()
-        instructions = data.get("paths", [{}])[0].get("instructions", [])
-        return Response({"instructions": instructions})
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        if data["status"] != "OK":
+            return Response(
+                {"detail": f"Google Directions Fehler: {data.get('status', 'Unbekannt')}"}, 
+                status=400
+            )
+
+        route = data["routes"][0]
+        leg = route["legs"][0]
+        
+        # Detaillierte Schritte extrahieren
+        steps = []
+        for step in leg["steps"]:
+            steps.append({
+                "instruction": step["html_instructions"],
+                "distance": step["distance"]["text"],
+                "duration": step["duration"]["text"],
+                "travel_mode": step.get("travel_mode", mode.upper())
+            })
+
+        result = {
+            "status": "OK",
+            "route_summary": {
+                "total_distance": leg["distance"]["text"],
+                "total_duration": leg["duration"]["text"],
+                "start_address": leg["start_address"],
+                "end_address": leg["end_address"]
+            },
+            "steps": steps,
+            "polyline": route["overview_polyline"]["points"],
+            "navigation_url": f"https://www.google.com/maps/dir/{start}/{ziel}"
+        }
+
+        return Response(result)
+
+    except requests.exceptions.Timeout:
+        return Response(
+            {"detail": "Zeitüberschreitung bei Google Directions API"}, 
+            status=504
+        )
+    except requests.RequestException as e:
+        return Response(
+            {"detail": f"Fehler bei der Anfrage an Google Directions: {str(e)}"}, 
+            status=500
+        )
     except Exception as e:
-        return Response({"detail": f"Fehler bei der Anfrage an GraphHopper: {str(e)}"}, status=500)
+        return Response(
+            {"detail": f"Unerwarteter Fehler: {str(e)}"}, 
+            status=500
+        )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def geocode_address(request):
+    """
+    Neue Funktion für Frontend: Adressvalidierung und Geocoding.
+    """
+    adresse = request.data.get("adresse")
+    if not adresse:
+        return Response(
+            {"detail": "Adresse erforderlich."}, 
+            status=400
+        )
+    
+    result = geocode_adresse(adresse)
+    if result:
+        return Response({
+            "status": "success",
+            "data": result,
+            "message": "Adresse erfolgreich gefunden"
+        })
+    else:
+        return Response(
+            {"detail": "Adresse konnte nicht gefunden werden. Bitte überprüfen Sie Ihre Eingabe."}, 
+            status=404
+        )
+
+
+# Zusätzliche API für Dashboard-Statistiken
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def dashboard_stats(request):
+    """
+    Liefert Dashboard-Statistiken für den angemeldeten Benutzer.
+    """
+    try:
+        user = request.user
+        routen = Route.objects.filter(benutzer=user)
+        
+        # Grundlegende Statistiken
+        total_routes = routen.count()
+        
+        if total_routes > 0:
+            avg_duration = routen.aggregate(
+                avg_dur=models.Avg('dauer_minuten')
+            )['avg_dur'] or 0
+            
+            # Lieblings-Parkplatz (häufigster)
+            favorite_parking = routen.values('parkplatz__name').annotate(
+                count=models.Count('parkplatz')
+            ).order_by('-count').first()
+            
+            # Letzte Routen
+            recent_routes = RouteSerializer(
+                routen.order_by('-erstelldatum')[:5], 
+                many=True
+            ).data
+        else:
+            avg_duration = 0
+            favorite_parking = None
+            recent_routes = []
+        
+        return Response({
+            "total_routes": total_routes,
+            "avg_duration_minutes": round(avg_duration) if avg_duration else 0,
+            "favorite_parking": favorite_parking.get('parkplatz__name') if favorite_parking else None,
+            "recent_routes": recent_routes,
+            "profile_completion": {
+                "has_favorite_club": bool(user.profil.lieblingsverein),
+                "has_stadium": bool(user.profil.lieblingsverein and user.profil.lieblingsverein.stadien.exists()),
+                "completion_percentage": 100 if user.profil.lieblingsverein else 50
+            }
+        })
+        
+    except Exception as e:
+        return Response(
+            {"detail": f"Fehler beim Laden der Dashboard-Daten: {str(e)}"},
+            status=500
+        )

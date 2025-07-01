@@ -8,7 +8,9 @@ from .views import (
     StadionViewSet,
     UserRegisterView,
     VereinViewSet,
-    graphhopper_route,
+    google_route_details, 
+    geocode_address,
+    dashboard_stats,
     ProfilView,
 )
 
@@ -19,10 +21,19 @@ router.register(r'stadion', StadionViewSet)
 router.register(r'routen', RouteViewSet)
 
 urlpatterns = [
+    # Hauptfunktionen
     path('routen/speichern/', RouteSpeichernView.as_view(), name='routing-speichern'),
     path('routen-vorschlag/', RouteSuggestionView.as_view(), name='routen-vorschlag'),
     path('register/', UserRegisterView.as_view(), name='register'),
     path('profil/', ProfilView.as_view(), name='profil'),
-    path("navigation/", graphhopper_route, name="graphhopper_route"),
+    
+    # Neue Google Maps basierte Endpoints
+    path("route-details/", google_route_details, name="google_route_details"),
+    path("geocode/", geocode_address, name="geocode_address"),
+    
+    # Dashboard API
+    path("dashboard-stats/", dashboard_stats, name="dashboard_stats"),
+    
+    # Router URLs
     path('', include(router.urls)),
 ]

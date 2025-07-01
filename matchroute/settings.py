@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
-GRAPH_HOPPER_API_KEY = os.getenv("GRAPH_HOPPER_API_KEY")
+# GRAPH_HOPPER_API_KEY = os.getenv("GRAPH_HOPPER_API_KEY")
 OPENWEATHERMAP_KEY = os.getenv("OPENWEATHERMAP_KEY")
 OPENAI_API_KEY = os.getenv("OPEN_AI_KEY")
 

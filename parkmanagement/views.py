@@ -12,6 +12,8 @@ import requests
 
 from parkmanagement.utils import (
     berechne_gesamtzeit_mit_transit_und_walk,
+    generiere_gpt_verkehrstext,
+    hole_wetter,
 )
 from .models import Parkplatz, Route, Stadion, Verein
 from .serializers import (
@@ -77,6 +79,16 @@ class RouteSuggestionView(APIView):
             )
 
             if result:
+                
+                wetter = hole_wetter(stadion.latitude, stadion.longitude)
+                
+                gpt_kommentar = generiere_gpt_verkehrstext(
+                    dauer_min=result.get("dauer_traffic"),
+                    dauer_normal_min = result.get("dauer_auto"),
+                    wetter=wetter,
+                    ort = stadion.name
+                )
+                
                 vorschlaege.append(
                     {
                         "parkplatz": {
@@ -86,6 +98,9 @@ class RouteSuggestionView(APIView):
                             "longitude": float(parkplatz.longitude),
                         },
                         "dauer_auto": result.get("dauer_auto"),
+                        "dauer_traffic": result.get("dauer_traffic"),
+                        "verkehr_bewertung": result.get("verkehr_bewertung"),
+                        "verkehr_kommentar": gpt_kommentar,
                         "dauer_transit": result.get("dauer_transit"),
                         "dauer_walking": result.get("dauer_walking"),
                         "beste_methode": result.get("beste_methode"),

@@ -11,15 +11,6 @@ import {
 import { decodePolyline } from "../utils/decodePolyline";
 import "leaflet/dist/leaflet.css";
 
-const markerColors = {
-  start: "red",
-  ziel: "black",
-  bester: "green",
-  vorschlag: "blue",
-  route: "blue",
-  transit: "green",
-};
-
 const formatMinutes = (min) => {
   const h = Math.floor(min / 60);
   const m = min % 60;
@@ -49,8 +40,6 @@ const RoutePlanPage = () => {
   const [alleVorschlaege, setAlleVorschlaege] = useState([]);
   const [stadionId, setStadionId] = useState(null);
   const [fokusParkplatz, setFokusParkplatz] = useState(null);
-  const [anleitung, setAnleitung] = useState([]);
-  const [zeigeAnleitung, setZeigeAnleitung] = useState(false);
   const [aktiverParkplatz, setAktiverParkplatz] = useState(null);
   const [stadion, setStadion] = useState(null);
   const [verein, setVerein] = useState(null);
@@ -113,8 +102,6 @@ const RoutePlanPage = () => {
     setTransitCoords([]);
     setStartMarker(null);
     setZielMarker(null);
-    setAnleitung([]);
-    setZeigeAnleitung(false);
   };
 
   const handleParkplatzKlick = (v) => {
@@ -156,28 +143,6 @@ const RoutePlanPage = () => {
     }
   };
 
-  const handleStartNavigation = async () => {
-    if (!startMarker || !zielMarker) {
-      alert("Start- und Zielposition fehlen.");
-      return;
-    }
-
-    const start = `${startMarker[0]},${startMarker[1]}`;
-    const ziel = `${zielMarker[0]},${zielMarker[1]}`;
-
-    try {
-      const res = await axiosClient.get("/api/navigation", {
-        params: { start, ziel, profile: "foot" },
-      });
-
-      setAnleitung(res.data.instructions || []);
-      setZeigeAnleitung(true);
-    } catch (err) {
-      console.error("Fehler bei der Navigation:", err);
-      alert("Fehler beim Abrufen der Navigation.");
-    }
-  };
-
   const mapCenter =
     routeCoords.length > 0
       ? routeCoords[Math.floor(routeCoords.length / 2)]
@@ -192,8 +157,9 @@ const RoutePlanPage = () => {
         </h2>
         <h3 className="text-xl font-light mb-4 text-center">
           Gib einfach deine Startadresse ein und klicke auf den Button.
-          Anschließend schlägt dir das System den bestmöglichen Parkplatz rund um       
-            <strong> {verein?.stadt || "—"} </strong> vor.
+          Anschließend schlägt dir das System den bestmöglichen Parkplatz rund
+          um
+          <strong> {verein?.stadt || "—"} </strong> vor.
         </h3>
       </div>
       <div className="bg-white border rounded-lg shadow-sm p-6">
@@ -250,7 +216,33 @@ const RoutePlanPage = () => {
               </button>
             </form>
           </div>
-
+          {ergebnis?.empfohlener_parkplatz?.verkehr_bewertung && (
+                <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm">
+                  <h4 className="text-md font-semibold text-gray-700 mb-2">
+                    Bewertung Verkehrslage
+                  </h4>
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`text-sm font-semibold px-3 py-1 rounded-full text-white shadow-sm transition ${
+                        ergebnis.empfohlener_parkplatz.verkehr_bewertung >= 9
+                          ? "bg-green-500"
+                          : ergebnis.empfohlener_parkplatz.verkehr_bewertung >=
+                            7
+                          ? "bg-yellow-400"
+                          : ergebnis.empfohlener_parkplatz.verkehr_bewertung >=
+                            4
+                          ? "bg-orange-400"
+                          : "bg-red-600"
+                      }`}
+                    >
+                      {ergebnis.empfohlener_parkplatz.verkehr_bewertung} 
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {ergebnis.empfohlener_parkplatz.verkehr_kommentar}
+                    </p>
+                  </div>
+                </div>
+              )}
           <div className="bg-white border rounded-lg shadow-sm p-6">
             <h2 className="text-lg font-semibold mb-4">Aktionen</h2>
             <div className="space-y-3">
@@ -259,12 +251,6 @@ const RoutePlanPage = () => {
                 className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md"
               >
                 Route speichern
-              </button>
-              <button
-                onClick={handleStartNavigation}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md"
-              >
-                Navigation starten
               </button>
             </div>
           </div>
@@ -313,7 +299,6 @@ const RoutePlanPage = () => {
               )}
             </MapContainer>
           </div>
-
           {alleVorschlaege.length > 0 && (
             <div className="bg-white border rounded-lg shadow-sm p-6 space-y-4">
               <h3 className="text-lg font-semibold mb-4">

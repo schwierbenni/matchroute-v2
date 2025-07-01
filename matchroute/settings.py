@@ -18,6 +18,8 @@ from dotenv import load_dotenv
 load_dotenv()
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 GRAPH_HOPPER_API_KEY = os.getenv("GRAPH_HOPPER_API_KEY")
+OPENWEATHERMAP_KEY = os.getenv("OPENWEATHERMAP_KEY")
+OPENAI_API_KEY = os.getenv("OPEN_AI_KEY")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent

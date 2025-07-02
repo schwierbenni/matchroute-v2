@@ -3,11 +3,25 @@ from django.conf import settings
 from openai import OpenAI
 import math
 from datetime import datetime, time
+import logging
+
+# Import der neuen Dortmund Parking API
+try:
+    from .dortmund_parking_api import (
+        DortmundParkingData,
+        enrich_parkplatz_with_live_data,
+        get_dortmund_parking_overview
+    )
+    DORTMUND_INTEGRATION_AVAILABLE = True
+except ImportError:
+    DORTMUND_INTEGRATION_AVAILABLE = False
+    logging.warning("Dortmund Parking API Integration nicht verfügbar")
 
 GOOGLE_KEY = settings.GOOGLE_MAPS_API_KEY
 OPENWEATHER_KEY = settings.OPENWEATHERMAP_KEY
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
+logger = logging.getLogger(__name__)
 
 
 def berechne_realistische_verkehrsbewertung(normal_dauer_sekunden, traffic_dauer_sekunden, tageszeit=None, wochentag=None):
@@ -328,16 +342,37 @@ def berechne_gesamtzeit_mit_realistischer_bewertung(start_adresse, parkplatz, st
     return ergebnisse
 
 
-def berechne_optimierte_parkplatz_empfehlung(start_adresse, parkplaetze, stadion):
+def berechne_optimierte_parkplatz_empfehlung_mit_live_daten(start_adresse, parkplaetze, stadion):
     """
-    Effiziente Berechnung für alle Parkplätze mit optimierter Verarbeitung.
+    🎯 NEUE HAUPTFUNKTION: Erweiterte Parkplatz-Empfehlung mit Dortmund Live-Daten
+    
+    Diese Funktion integriert die Echtzeit-Parkplatzdaten von Dortmund Open Data
+    in die bestehende Routenberechnung für wissenschaftliche Anwendungsfälle.
     """
     if not parkplaetze:
         return []
     
+    logger.info(f"🚀 Berechne Routen für {len(parkplaetze)} Parkplätze mit Live-Daten Integration")
+    
+    # 1. Hole Live-Daten von Dortmund (falls verfügbar)
+    live_data_list = []
+    if DORTMUND_INTEGRATION_AVAILABLE:
+        try:
+            live_data_list = DortmundParkingData.fetch_live_parking_data() or []
+            if live_data_list:
+                logger.info(f"✅ {len(live_data_list)} Live-Parkplätze von Dortmund geladen")
+            else:
+                logger.info("ℹ️ Keine Live-Daten verfügbar - verwende nur Routenberechnung")
+        except Exception as e:
+            logger.error(f"❌ Fehler beim Laden der Live-Daten: {e}")
+            live_data_list = []
+    
+    # 2. Berechne Routen für alle Parkplätze
     vorschlaege = []
     
     for parkplatz in parkplaetze:
+        logger.info(f"🔄 Berechne Route für: {parkplatz.name}")
+        
         result = berechne_gesamtzeit_mit_realistischer_bewertung(
             start_adresse, parkplatz, stadion
         )
@@ -364,11 +399,37 @@ def berechne_optimierte_parkplatz_empfehlung(start_adresse, parkplaetze, stadion
                 "polyline_walking": result.get("polyline_walking"),
                 "navigation_links": result.get("navigation_links"),
                 "walking_navigation": result.get("walking_navigation"),
+                # Placeholder für Live-Daten
+                "has_live_data": False,
+                "live_parking_data": None
             }
             
+            # 3. Live-Daten Integration (falls verfügbar)
+            if live_data_list and DORTMUND_INTEGRATION_AVAILABLE:
+                try:
+                    vorschlag = enrich_parkplatz_with_live_data(vorschlag, live_data_list)
+                except Exception as e:
+                    logger.error(f"⚠️ Fehler bei Live-Daten Integration für {parkplatz.name}: {e}")
+            
             vorschlaege.append(vorschlag)
+        else:
+            logger.warning(f"⚠️ Keine Route gefunden für: {parkplatz.name}")
     
-    return sorted(vorschlaege, key=lambda x: x["gesamtzeit"] or float('inf'))
+    # 4. Sortierung nach Gesamtzeit
+    sorted_vorschlaege = sorted(vorschlaege, key=lambda x: x["gesamtzeit"] or float('inf'))
+    
+    logger.info(f"✅ {len(sorted_vorschlaege)} Parkplatz-Vorschläge erfolgreich berechnet")
+    
+    return sorted_vorschlaege
+
+
+# Backwards compatibility - alte Funktion leitet an neue weiter
+def berechne_optimierte_parkplatz_empfehlung(start_adresse, parkplaetze, stadion):
+    """
+    Legacy-Funktion für Rückwärtskompatibilität.
+    Leitet an die neue Funktion mit Live-Daten weiter.
+    """
+    return berechne_optimierte_parkplatz_empfehlung_mit_live_daten(start_adresse, parkplaetze, stadion)
 
 
 def hole_wetter_mit_verkehrseinfluss(lat, lng):

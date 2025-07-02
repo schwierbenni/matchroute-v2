@@ -13,7 +13,9 @@ import {
   Database,
   AlertCircle,
   CheckCircle2,
-  Calendar
+  Calendar,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 
 const formatMinutes = (min) => {
@@ -158,8 +160,14 @@ const ParkplatzCard = ({ vorschlag, index, isActive, onClick }) => {
               )}
               {hasLiveData && (
                 <span className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-xs px-3 py-1 rounded-full font-medium shadow-sm flex items-center">
-                  <Database className="w-3 h-3 mr-1" />
+                  <Wifi className="w-3 h-3 mr-1" />
                   Live-Daten
+                </span>
+              )}
+              {!hasLiveData && (
+                <span className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full font-medium flex items-center">
+                  <WifiOff className="w-3 h-3 mr-1" />
+                  Offline
                 </span>
               )}
             </div>
@@ -185,13 +193,16 @@ const ParkplatzCard = ({ vorschlag, index, isActive, onClick }) => {
         </div>
       </div>
 
-      {/* 🎯 LIVE-PARKPLATZ-DATEN SEKTION */}
+      {/* 🎯 LIVE-PARKPLATZ-DATEN SEKTION - ERWEITERT */}
       {hasLiveData && liveData && (
         <div className="mb-4 bg-blue-50 rounded-xl p-4 border border-blue-200">
           <div className="flex items-center justify-between mb-3">
             <h5 className="font-semibold text-gray-800 flex items-center">
               <Database className="w-4 h-4 mr-2 text-blue-600" />
               Live-Verfügbarkeit
+              <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                Dortmund Open Data
+              </span>
             </h5>
             <div className={`text-xs px-2 py-1 rounded-full font-medium ${liveData.freshness?.css_class || 'bg-gray-100 text-gray-600'}`}>
               {liveData.freshness?.status || 'Unbekannt'}
@@ -241,6 +252,40 @@ const ParkplatzCard = ({ vorschlag, index, isActive, onClick }) => {
             })}
             <span className="font-medium">{liveData.occupancy?.occupancy_text || 'Status unbekannt'}</span>
           </div>
+
+          {/* 🆕 Zusätzliche Live-Daten Informationen */}
+          {liveData.type && (
+            <div className="mt-3 text-xs text-gray-600 bg-white px-3 py-2 rounded-lg border border-blue-100">
+              <div className="flex items-center justify-between">
+                <span>Typ: {liveData.type}</span>
+                {liveData.parkeinrichtung && (
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    liveData.parkeinrichtung === 'geoeffnet' 
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-red-100 text-red-700'
+                  }`}>
+                    {liveData.parkeinrichtung === 'geoeffnet' ? 'Geöffnet' : 'Geschlossen'}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Fallback für Parkplätze OHNE Live-Daten */}
+      {!hasLiveData && (
+        <div className="mb-4 bg-gray-50 rounded-xl p-4 border border-gray-200">
+          <div className="flex items-center justify-between mb-2">
+            <h5 className="font-semibold text-gray-700 flex items-center">
+              <WifiOff className="w-4 h-4 mr-2 text-gray-500" />
+              Keine Live-Daten verfügbar
+            </h5>
+          </div>
+          <p className="text-sm text-gray-600">
+            Für diesen Parkplatz stehen aktuell keine Echtzeit-Verfügbarkeitsdaten zur Verfügung.
+            Die Routenberechnung basiert auf statischen Daten.
+          </p>
         </div>
       )}
 

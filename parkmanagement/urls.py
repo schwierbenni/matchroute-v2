@@ -1,3 +1,4 @@
+
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
@@ -12,6 +13,10 @@ from .views import (
     geocode_address,
     dashboard_stats,
     ProfilView,
+    # 🆕 Neue Dortmund Live-Daten Endpoints
+    dortmund_parking_overview,
+    live_parking_status,
+    research_data_export,
 )
 
 router = DefaultRouter()
@@ -27,12 +32,19 @@ urlpatterns = [
     path('register/', UserRegisterView.as_view(), name='register'),
     path('profil/', ProfilView.as_view(), name='profil'),
     
-    # Neue Google Maps basierte Endpoints
+    # Google Maps basierte Endpoints
     path("route-details/", google_route_details, name="google_route_details"),
     path("geocode/", geocode_address, name="geocode_address"),
     
     # Dashboard API
     path("dashboard-stats/", dashboard_stats, name="dashboard_stats"),
+    
+    # 🆕 NEUE ENDPOINTS: Dortmund Live-Daten Integration
+    path("dortmund/parking-overview/", dortmund_parking_overview, name="dortmund_parking_overview"),
+    path("live-parking-status/", live_parking_status, name="live_parking_status"),
+    
+    # 🎓 FORSCHUNGS-ENDPOINTS für Masterarbeit
+    path("research/data-export/", research_data_export, name="research_data_export"),
     
     # Router URLs
     path('', include(router.urls)),

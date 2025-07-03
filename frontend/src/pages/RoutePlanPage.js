@@ -6,7 +6,8 @@ import {
   Zap, 
   CheckCircle,
   Save,
-  AlertTriangle
+  AlertTriangle,
+  Search
 } from "lucide-react";
 import axiosClient from "../api/axiosClient";
 import {
@@ -44,11 +45,11 @@ const getTrafficIcon = (rating) => {
 
 const getTrafficDescription = (rating) => {
   const descriptions = {
-    5: 'Excellent - Freie Fahrt',
-    4: 'Good - Flüssiger Verkehr',
+    5: 'Perfekt - Freie Fahrt',
+    4: 'Gut - Flüssiger Verkehr',
     3: 'Fair - Moderater Verkehr',
-    2: 'Poor - Dichter Verkehr',
-    1: 'Critical - Stau/Stockungen'
+    2: 'Schlecht - Dichter Verkehr',
+    1: 'Kritisch - Stau/Stockungen'
   };
   return descriptions[rating] || 'Unbekannt';
 };
@@ -273,8 +274,8 @@ const RoutePlanPage = () => {
           </p>
         </div>
 
-        {/* Enhanced Stadium Info Card */}
-        <div className="max-w-4xl mx-auto mb-8">
+        {/* Stadium Info Card */}
+        <div className="max-w-6xl mx-auto mb-8">
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden border border-white/20">
             <div className="md:flex">
               <div className="md:w-1/3 relative">
@@ -320,7 +321,7 @@ const RoutePlanPage = () => {
 
         {/* Error Message */}
         {fehlerMeldung && (
-          <div className="max-w-4xl mx-auto mb-6">
+          <div className="max-w-6xl mx-auto mb-6">
             <div className="bg-red-50 border border-red-200 rounded-2xl p-4 shadow-lg">
               <div className="flex items-center">
                 <AlertTriangle className="w-6 h-6 text-red-600 mr-3" />
@@ -333,20 +334,18 @@ const RoutePlanPage = () => {
           </div>
         )}
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
+        {/* 🎯 NEUES LAYOUT: Desktop-optimiert mit mehr Platz für Parkplatzvorschläge */}
+        <div className="max-w-8xl mx-auto">
           
-          {/* Left Column - Controls */}
-          <div className="space-y-6">
-            
-            {/* Enhanced Search Form */}
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-white/20">
-              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                <MapPin className="w-5 h-5 mr-2" />
-                Startadresse eingeben
-              </h3>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="relative">
+          {/* Search Form - Kompakter für Desktop */}
+          <div className="mb-8">
+            <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-white/20 max-w-4xl mx-auto">
+              <form onSubmit={handleSubmit} className="flex gap-4 items-end">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Search className="w-4 h-4 inline mr-2" />
+                    Startadresse eingeben
+                  </label>
                   <input
                     type="text"
                     placeholder="z.B. Hamburg, Hauptbahnhof oder Ihre vollständige Adresse"
@@ -356,106 +355,282 @@ const RoutePlanPage = () => {
                     disabled={isLoading}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 disabled:bg-gray-100 text-lg"
                   />
-                  {isLoading && (
-                    <div className="absolute right-3 top-3">
-                      <div className="animate-spin h-6 w-6 border-2 border-indigo-500 border-t-transparent rounded-full"></div>
-                    </div>
-                  )}
                 </div>
                 
                 <button
                   type="submit"
                   disabled={isLoading || !startAdresse.trim()}
-                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 disabled:scale-100 shadow-xl text-lg"
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium py-3 px-8 rounded-xl transition-all duration-200 transform hover:scale-105 disabled:scale-100 shadow-xl whitespace-nowrap"
                 >
                   {isLoading ? (
-                    <span className="flex items-center justify-center">
-                      <div className="animate-spin -ml-1 mr-3 h-6 w-6 border-2 border-white border-t-transparent rounded-full"></div>
-                      Route wird berechnet...
+                    <span className="flex items-center">
+                      <div className="animate-spin -ml-1 mr-3 h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                      Berechnung...
                     </span>
                   ) : (
-                    <span className="flex items-center justify-center">
+                    <span className="flex items-center">
                       <Navigation className="w-5 h-5 mr-2" />
-                      Beste Route finden
+                      Route finden
                     </span>
                   )}
                 </button>
-                
-                {loadingStage && (
-                  <div className="text-center">
-                    <p className="text-sm text-indigo-600 font-medium mb-2">{loadingStage}</p>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div 
-                        className="bg-gradient-to-r from-indigo-600 to-purple-600 h-3 rounded-full transition-all duration-500" 
-                        style={{
-                          width: loadingStage.includes("Fertig") ? "100%" : 
-                                 loadingStage.includes("optimiert") ? "80%" : 
-                                 loadingStage.includes("analysiert") ? "60%" : "30%"
-                        }}
-                      ></div>
+              </form>
+              
+              {loadingStage && (
+                <div className="mt-4">
+                  <p className="text-sm text-indigo-600 font-medium mb-2 text-center">{loadingStage}</p>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-indigo-600 to-purple-600 h-2 rounded-full transition-all duration-500" 
+                      style={{
+                        width: loadingStage.includes("Fertig") ? "100%" : 
+                               loadingStage.includes("optimiert") ? "80%" : 
+                               loadingStage.includes("analysiert") ? "60%" : "30%"
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 🎯 DESKTOP LAYOUT: 60% Parkplätze + 40% Karte/Infos */}
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
+            
+            {/* 🎯 HAUPTBEREICH: Parkplatz-Vorschläge (60% Desktop-Breite) */}
+            <div className="xl:col-span-3 space-y-6">
+              
+              {/* Traffic Assessment - Kompakter */}
+              {ergebnis?.empfohlener_parkplatz?.verkehr_bewertung && (
+                <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg p-4 border border-white/20">
+                  <div className="flex items-center gap-4">
+                    <div className={`text-lg font-bold px-4 py-2 rounded-xl text-white shadow-lg bg-gradient-to-r ${getTrafficColorClass(ergebnis.empfohlener_parkplatz.verkehr_bewertung)}`}>
+                      {React.createElement(getTrafficIcon(ergebnis.empfohlener_parkplatz.verkehr_bewertung), { className: "w-5 h-5 mr-2 inline" })}
+                      {ergebnis.empfohlener_parkplatz.verkehr_bewertung}/5
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-800">
+                        {getTrafficDescription(ergebnis.empfohlener_parkplatz.verkehr_bewertung)}
+                      </p>
+                      <p className="text-sm text-gray-600">Live-Verkehrslage</p>
                     </div>
                   </div>
-                )}
-              </form>
+                  {ergebnis.empfohlener_parkplatz.verkehr_kommentar && (
+                    <div className="mt-3 text-sm text-gray-700 bg-blue-50 p-3 rounded-xl border border-blue-100">
+                      <div className="flex items-start gap-2">
+                        <Zap className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <span className="italic">{ergebnis.empfohlener_parkplatz.verkehr_kommentar}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 🎯 PARKPLATZ-VORSCHLÄGE: Hauptbereich mit mehr Platz */}
+              {alleVorschlaege.length > 0 && (
+                <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20">
+                  <div className="p-6 bg-gray-50/80 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-2xl font-bold text-gray-800 flex items-center">
+                        <MapPin className="w-6 h-6 mr-3" />
+                        Parkplatz-Optionen
+                      </h3>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-gray-600 bg-white px-4 py-2 rounded-full border">
+                          {alleVorschlaege.length} verfügbar
+                        </span>
+                        <span className="text-xs text-gray-500 bg-green-100 text-green-700 px-3 py-2 rounded-full flex items-center">
+                          <Zap className="w-3 h-3 mr-1" />
+                          Live-Daten
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* 🎯 MEHR PLATZ für Parkplatz-Karten */}
+                  <div className="p-6 space-y-6 max-h-[800px] overflow-y-auto">
+                    {alleVorschlaege
+                      .sort((a, b) => a.gesamtzeit - b.gesamtzeit)
+                      .map((vorschlag, index) => (
+                        <ParkplatzCard
+                          key={vorschlag.parkplatz.id}
+                          vorschlag={vorschlag}
+                          index={index}
+                          isActive={aktiverParkplatz?.parkplatz.id === vorschlag.parkplatz.id}
+                          onClick={handleParkplatzKlick}
+                        />
+                      ))}
+                  </div>
+                  
+                  {/* Summary Footer */}
+                  <div className="p-4 bg-gray-50/80 border-t border-gray-200">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600 flex items-center">
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Beste Option: <span className="font-medium ml-1">{alleVorschlaege[0]?.parkplatz.name}</span>
+                      </span>
+                      <span className="text-indigo-600 font-medium flex items-center">
+                        <Clock className="w-4 h-4 mr-1" />
+                        {formatMinutes(alleVorschlaege[0]?.gesamtzeit)} Gesamtzeit
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Loading State */}
+              {isLoading && alleVorschlaege.length === 0 && (
+                <LoadingSpinner message={loadingStage} />
+              )}
+
+              {/* Empty State */}
+              {!isLoading && alleVorschlaege.length === 0 && !fehlerMeldung && (
+                <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-white/20 text-center">
+                  <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">Bereit für die Routenplanung</h3>
+                  <p className="text-gray-600 mb-4">
+                    Geben Sie Ihre Startadresse ein, um die besten Parkplatz-Optionen zu finden.
+                  </p>
+                  <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
+                    <p className="text-sm text-indigo-700 flex items-center justify-center">
+                      <Zap className="w-4 h-4 mr-2" />
+                      <strong>Tipp:</strong> Je genauer Ihre Adresse, desto präziser die Routenberechnung.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Enhanced Traffic Assessment */}
-            {ergebnis?.empfohlener_parkplatz?.verkehr_bewertung && (
-              <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-white/20">
-                <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                  <Zap className="w-5 h-5 mr-2" />
-                  Live-Verkehrslage
-                </h4>
-                <div className="flex items-center gap-4 mb-4">
-                  <div className={`text-2xl font-bold px-6 py-3 rounded-2xl text-white shadow-lg bg-gradient-to-r ${getTrafficColorClass(ergebnis.empfohlener_parkplatz.verkehr_bewertung)}`}>
-                    {React.createElement(getTrafficIcon(ergebnis.empfohlener_parkplatz.verkehr_bewertung), { className: "w-6 h-6 mr-2 inline" })}
-                    {ergebnis.empfohlener_parkplatz.verkehr_bewertung}/5
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-800">
-                      {getTrafficDescription(ergebnis.empfohlener_parkplatz.verkehr_bewertung)}
-                    </p>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Basierend auf Live-Verkehrsdaten
-                    </p>
-                  </div>
+            {/* 🎯 SEITENBEREICH: Karte + Kompakte Aktionen (40% Desktop-Breite) */}
+            <div className="xl:col-span-2 space-y-6">
+              
+              {/* Interactive Map - Kompakter */}
+              <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden border border-white/20">
+                <div className="p-4 bg-gray-50/80 border-b border-gray-200">
+                  <h3 className="text-lg font-bold text-gray-800 flex items-center">
+                    <MapPin className="w-5 h-5 mr-2" />
+                    Live-Kartenansicht
+                    {routeCoords.length > 0 && (
+                      <span className="ml-2 text-sm font-normal text-green-600 bg-green-100 px-2 py-1 rounded-full flex items-center">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Route aktiv
+                      </span>
+                    )}
+                  </h3>
                 </div>
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                  <p className="text-gray-700 font-medium flex items-start">
-                    <Zap className="w-4 h-4 mr-2 mt-0.5 text-blue-600" />
-                    {ergebnis.empfohlener_parkplatz.verkehr_kommentar}
-                  </p>
+                <div className="relative">
+                  <MapContainer
+                    center={fokusParkplatz || mapCenter}
+                    zoom={13}
+                    style={{ height: "400px", width: "100%" }}
+                    className="z-0"
+                  >
+                    <MapFocusController position={fokusParkplatz} />
+                    <TileLayer
+                      attribution="&copy; OpenStreetMap"
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    {routeCoords.length > 0 && (
+                      <Polyline 
+                        positions={routeCoords} 
+                        color="#4F46E5" 
+                        weight={5} 
+                        opacity={0.8}
+                        pathOptions={{
+                          lineCap: 'round',
+                          lineJoin: 'round'
+                        }}
+                      />
+                    )}
+                    {transitCoords.length > 0 && (
+                      <Polyline
+                        positions={transitCoords}
+                        color="#059669"
+                        dashArray="8"
+                        weight={4}
+                        opacity={0.7}
+                        pathOptions={{
+                          lineCap: 'round',
+                          lineJoin: 'round'
+                        }}
+                      />
+                    )}
+                    {startMarker && (
+                      <CircleMarker
+                        center={startMarker}
+                        radius={10}
+                        pathOptions={{ 
+                          color: "#DC2626", 
+                          fillColor: "#FCA5A5", 
+                          fillOpacity: 0.8,
+                          weight: 3
+                        }}
+                      >
+                        <Popup>
+                          <div className="text-center font-medium">
+                            <MapPin className="w-4 h-4 inline mr-1" />
+                            Startadresse<br/>
+                            <span className="text-sm text-gray-600">{startAdresse}</span>
+                          </div>
+                        </Popup>
+                      </CircleMarker>
+                    )}
+                    {zielMarker && (
+                      <CircleMarker
+                        center={zielMarker}
+                        radius={10}
+                        pathOptions={{ 
+                          color: "#1F2937", 
+                          fillColor: "#6B7280", 
+                          fillOpacity: 0.8,
+                          weight: 3
+                        }}
+                      >
+                        <Popup>
+                          <div className="text-center font-medium">
+                            <MapPin className="w-4 h-4 inline mr-1" />
+                            Ziel-Parkplatz<br/>
+                            <span className="text-sm text-gray-600">
+                              {aktiverParkplatz?.parkplatz.name}
+                            </span>
+                          </div>
+                        </Popup>
+                      </CircleMarker>
+                    )}
+                  </MapContainer>
+                  
+                  {/* Kompakte Map Legend */}
+                  <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-xl p-3 shadow-lg z-10 border border-gray-200 max-w-40">
+                    <h4 className="font-semibold text-xs mb-2 text-gray-800">Legende</h4>
+                    <div className="space-y-1 text-xs">
+                      {routeCoords.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-0.5 bg-indigo-600 rounded"></div>
+                          <span className="text-gray-700">Auto</span>
+                        </div>
+                      )}
+                      {transitCoords.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-0.5 bg-green-600 rounded" 
+                            style={{
+                              background: 'linear-gradient(to right, #059669 2px, transparent 2px)', 
+                              backgroundSize: '4px 1px',
+                              backgroundRepeat: 'repeat-x'
+                            }}
+                          ></div>
+                          <span className="text-gray-700">Weiter</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            )}
 
-            {/* Enhanced Actions */}
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-white/20">
-              <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                <Save className="w-5 h-5 mr-2" />
-                Aktionen
-              </h4>
-              <div className="space-y-3">
-                <button
-                  onClick={handleSaveRoute}
-                  disabled={!aktiverParkplatz || isSaving}
-                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 disabled:scale-100 shadow-lg"
-                >
-                  {isSaving ? (
-                    <span className="flex items-center justify-center">
-                      <div className="animate-spin -ml-1 mr-3 h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                      Wird gespeichert...
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center">
-                      <Save className="w-5 h-5 mr-2" />
-                      Route speichern
-                    </span>
-                  )}
-                </button>
-                
-                {aktiverParkplatz && (
-                  <div className="text-center bg-indigo-50 rounded-xl p-3 border border-indigo-200">
+              {/* Kompakte Aktionen - Unten positioniert */}
+              {aktiverParkplatz && (
+                <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg p-4 border border-white/20">
+                  <div className="text-center bg-indigo-50 rounded-xl p-3 border border-indigo-200 mb-4">
                     <p className="text-sm text-indigo-700 flex items-center justify-center">
                       <CheckCircle className="w-4 h-4 mr-2" />
                       <span className="font-medium">Ausgewählt:</span> 
@@ -466,252 +641,70 @@ const RoutePlanPage = () => {
                       Gesamtzeit: {formatMinutes(aktiverParkplatz.gesamtzeit)}
                     </p>
                   </div>
-                )}
-              </div>
-            </div>
-          </div>
+                </div>
+              )}
 
-          {/* Right Column - Map & Results */}
-          <div className="space-y-6">
-            
-            {/* Enhanced Interactive Map */}
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden border border-white/20">
-              <div className="p-4 bg-gray-50/80 border-b border-gray-200">
-                <h3 className="text-lg font-bold text-gray-800 flex items-center">
-                  <MapPin className="w-5 h-5 mr-2" />
-                  Live-Kartenansicht
-                  {routeCoords.length > 0 && (
-                    <span className="ml-2 text-sm font-normal text-green-600 bg-green-100 px-2 py-1 rounded-full flex items-center">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Route aktiv
-                    </span>
-                  )}
-                </h3>
-              </div>
-              <div className="relative">
-                <MapContainer
-                  center={fokusParkplatz || mapCenter}
-                  zoom={13}
-                  style={{ height: "450px", width: "100%" }}
-                  className="z-0"
-                >
-                  <MapFocusController position={fokusParkplatz} />
-                  <TileLayer
-                    attribution="&copy; OpenStreetMap"
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  {routeCoords.length > 0 && (
-                    <Polyline 
-                      positions={routeCoords} 
-                      color="#4F46E5" 
-                      weight={5} 
-                      opacity={0.8}
-                      pathOptions={{
-                        lineCap: 'round',
-                        lineJoin: 'round'
-                      }}
-                    />
-                  )}
-                  {transitCoords.length > 0 && (
-                    <Polyline
-                      positions={transitCoords}
-                      color="#059669"
-                      dashArray="8"
-                      weight={4}
-                      opacity={0.7}
-                      pathOptions={{
-                        lineCap: 'round',
-                        lineJoin: 'round'
-                      }}
-                    />
-                  )}
-                  {startMarker && (
-                    <CircleMarker
-                      center={startMarker}
-                      radius={10}
-                      pathOptions={{ 
-                        color: "#DC2626", 
-                        fillColor: "#FCA5A5", 
-                        fillOpacity: 0.8,
-                        weight: 3
-                      }}
-                    >
-                      <Popup>
-                        <div className="text-center font-medium">
-                          <MapPin className="w-4 h-4 inline mr-1" />
-                          Startadresse<br/>
-                          <span className="text-sm text-gray-600">{startAdresse}</span>
-                        </div>
-                      </Popup>
-                    </CircleMarker>
-                  )}
-                  {zielMarker && (
-                    <CircleMarker
-                      center={zielMarker}
-                      radius={10}
-                      pathOptions={{ 
-                        color: "#1F2937", 
-                        fillColor: "#6B7280", 
-                        fillOpacity: 0.8,
-                        weight: 3
-                      }}
-                    >
-                      <Popup>
-                        <div className="text-center font-medium">
-                          <MapPin className="w-4 h-4 inline mr-1" />
-                          Ziel-Parkplatz<br/>
-                          <span className="text-sm text-gray-600">
-                            {aktiverParkplatz?.parkplatz.name}
-                          </span>
-                        </div>
-                      </Popup>
-                    </CircleMarker>
-                  )}
-                </MapContainer>
-                
-                {/* Enhanced Map Legend */}
-                <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-xl p-4 shadow-lg z-10 border border-gray-200 max-w-48">
+              {/* Route Info */}
+              {(routeCoords.length > 0 || transitCoords.length > 0) && aktiverParkplatz && (
+                <div className="bg-white/70 backdrop-blur-sm rounded-xl shadow-lg p-4 border border-white/20">
                   <h4 className="font-semibold text-sm mb-3 text-gray-800 flex items-center">
-                    <MapPin className="w-4 h-4 mr-1" />
-                    Legende
+                    <Clock className="w-4 h-4 mr-1" />
+                    Routeninfo
                   </h4>
-                  <div className="space-y-2 text-xs">
-                    {routeCoords.length > 0 && (
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-1 bg-indigo-600 rounded"></div>
-                        <span className="text-gray-700">Auto-Route</span>
-                      </div>
-                    )}
-                    {transitCoords.length > 0 && (
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-4 h-1 bg-green-600 rounded" 
-                          style={{
-                            background: 'linear-gradient(to right, #059669 4px, transparent 4px)', 
-                            backgroundSize: '8px 1px',
-                            backgroundRepeat: 'repeat-x'
-                          }}
-                        ></div>
-                        <span className="text-gray-700">Weiterreise</span>
-                      </div>
-                    )}
-                    
-                    <div className="border-t border-gray-200 pt-2 space-y-1">
-                      {startMarker && (
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 bg-red-300 border-2 border-red-600 rounded-full"></div>
-                          <span className="text-gray-700">Start</span>
-                        </div>
-                      )}
-                      {zielMarker && (
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 bg-gray-400 border-2 border-gray-800 rounded-full"></div>
-                          <span className="text-gray-700">Parkplatz</span>
-                        </div>
-                      )}
+                  <div className="space-y-2 text-sm text-gray-700">
+                    <div className="flex justify-between">
+                      <span>Distanz:</span>
+                      <span className="font-medium">{aktiverParkplatz.distanz_km} km</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Gesamtzeit:</span>
+                      <span className="font-medium">{formatMinutes(aktiverParkplatz.gesamtzeit)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Verkehrslage:</span>
+                      <span className={`font-medium ${
+                        aktiverParkplatz.verkehr_bewertung >= 4 ? 'text-green-600' :
+                        aktiverParkplatz.verkehr_bewertung >= 3 ? 'text-yellow-600' : 'text-red-600'
+                      }`}>
+                        {aktiverParkplatz.verkehr_bewertung}/5
+                      </span>
                     </div>
                   </div>
                 </div>
+              )}
+            </div>
+          </div>
 
-                {/* Map Statistics */}
-                {(routeCoords.length > 0 || transitCoords.length > 0) && (
-                  <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl p-3 shadow-lg z-10 border border-gray-200">
-                    <h4 className="font-semibold text-sm mb-2 text-gray-800 flex items-center">
-                      <Clock className="w-4 h-4 mr-1" />
-                      Routeninfo
-                    </h4>
-                    <div className="space-y-1 text-xs text-gray-700">
-                      {aktiverParkplatz && (
-                        <>
-                          <div className="flex justify-between">
-                            <span>Distanz:</span>
-                            <span className="font-medium">{aktiverParkplatz.distanz_km} km</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Gesamtzeit:</span>
-                            <span className="font-medium">{formatMinutes(aktiverParkplatz.gesamtzeit)}</span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
+          {/* 🎯 ROUTE SPEICHERN - Ganz unten, klein und unaufdringlich */}
+          {aktiverParkplatz && (
+            <div className="mt-12 max-w-2xl mx-auto">
+              <div className="bg-white/60 backdrop-blur-sm rounded-xl shadow-sm p-4 border border-white/20 text-center">
+                <p className="text-sm text-gray-600 mb-3">
+                  Möchten Sie diese Route für später speichern?
+                </p>
+                <button
+                  onClick={handleSaveRoute}
+                  disabled={isSaving}
+                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium py-2 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 disabled:scale-100 shadow-md text-sm"
+                >
+                  {isSaving ? (
+                    <span className="flex items-center">
+                      <div className="animate-spin -ml-1 mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                      Wird gespeichert...
+                    </span>
+                  ) : (
+                    <span className="flex items-center">
+                      <Save className="w-4 h-4 mr-2" />
+                      Route speichern
+                    </span>
+                  )}
+                </button>
+                <p className="text-xs text-gray-500 mt-2">
+                  Gespeicherte Routen finden Sie in Ihrem Dashboard
+                </p>
               </div>
             </div>
-
-            {/* Enhanced Parking Results */}
-            {alleVorschlaege.length > 0 && (
-              <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20">
-                <div className="p-4 bg-gray-50/80 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold text-gray-800 flex items-center">
-                      <MapPin className="w-5 h-5 mr-2" />
-                      Parkplatz-Optionen
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-600 bg-white px-3 py-1 rounded-full border">
-                        {alleVorschlaege.length} verfügbar
-                      </span>
-                      <span className="text-xs text-gray-500 bg-green-100 text-green-700 px-2 py-1 rounded-full flex items-center">
-                        <Zap className="w-3 h-3 mr-1" />
-                        Live-Daten
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
-                  {alleVorschlaege
-                    .sort((a, b) => a.gesamtzeit - b.gesamtzeit)
-                    .map((vorschlag, index) => (
-                      <ParkplatzCard
-                        key={vorschlag.parkplatz.id}
-                        vorschlag={vorschlag}
-                        index={index}
-                        isActive={aktiverParkplatz?.parkplatz.id === vorschlag.parkplatz.id}
-                        onClick={handleParkplatzKlick}
-                      />
-                    ))}
-                </div>
-                
-                {/* Summary Footer */}
-                <div className="p-4 bg-gray-50/80 border-t border-gray-200">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600 flex items-center">
-                      <CheckCircle className="w-4 h-4 mr-1" />
-                      Beste Option: <span className="font-medium ml-1">{alleVorschlaege[0]?.parkplatz.name}</span>
-                    </span>
-                    <span className="text-indigo-600 font-medium flex items-center">
-                      <Clock className="w-4 h-4 mr-1" />
-                      {formatMinutes(alleVorschlaege[0]?.gesamtzeit)} Gesamtzeit
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Loading State */}
-            {isLoading && alleVorschlaege.length === 0 && (
-              <LoadingSpinner message={loadingStage} />
-            )}
-
-            {/* Empty State */}
-            {!isLoading && alleVorschlaege.length === 0 && !fehlerMeldung && (
-              <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-white/20 text-center">
-                <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Bereit für die Routenplanung</h3>
-                <p className="text-gray-600 mb-4">
-                  Geben Sie Ihre Startadresse ein, um die besten Parkplatz-Optionen zu finden.
-                </p>
-                <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
-                  <p className="text-sm text-indigo-700 flex items-center justify-center">
-                    <Zap className="w-4 h-4 mr-2" />
-                    <strong>Tipp:</strong> Je genauer Ihre Adresse, desto präziser die Routenberechnung.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>

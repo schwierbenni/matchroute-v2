@@ -14,7 +14,7 @@ import logging
 
 from parkmanagement.utils import (
     berechne_gesamtzeit_mit_realistischer_bewertung, 
-    berechne_optimierte_parkplatz_empfehlung_mit_live_daten,  # 🎯 Neue Funktion mit Live-Daten
+    berechne_optimierte_parkplatz_empfehlung_mit_live_daten, 
     generiere_intelligenten_verkehrskommentar,
     hole_wetter_mit_verkehrseinfluss,
     berechne_google_route,
@@ -76,8 +76,6 @@ class RouteViewSet(viewsets.ModelViewSet):
 
 class RouteSuggestionView(APIView):
     """
-    🎯 ERWEITERTE Route-Suggestion mit Dortmund Live-Daten Integration
-    
     Diese View wurde für wissenschaftliche Anwendungsfälle erweitert und 
     integriert Echtzeit-Parkplatzdaten von Dortmund Open Data.
     """
@@ -103,9 +101,8 @@ class RouteSuggestionView(APIView):
                 status=400
             )
 
-        logger.info(f"🚀 Starte Routenberechnung für {user.username} - {len(parkplaetze)} Parkplätze")
+        logger.info(f"Starte Routenberechnung für {user.username} - {len(parkplaetze)} Parkplätze")
 
-        # 🔥 NEUE FUNKTION: Optimierte Berechnung mit Live-Daten Integration
         vorschlaege = berechne_optimierte_parkplatz_empfehlung_mit_live_daten(
             start_adresse, parkplaetze, stadion
         )
@@ -144,7 +141,7 @@ class RouteSuggestionView(APIView):
 
         alle_ohne_bester = vorschlaege[1:]
 
-        # 📊 Erweiterte Response mit Live-Daten Metadaten
+        # Erweiterte Response mit Live-Daten Metadaten
         response_data = {
             "empfohlener_parkplatz": bester, 
             "alle_parkplaetze": alle_ohne_bester,
@@ -167,7 +164,7 @@ class RouteSuggestionView(APIView):
             }
         }
 
-        logger.info(f"✅ Routenberechnung abgeschlossen: {len(vorschlaege)} Optionen, {live_data_count} mit Live-Daten")
+        logger.info(f" Routenberechnung abgeschlossen: {len(vorschlaege)} Optionen, {live_data_count} mit Live-Daten")
 
         return Response(response_data, status=200)
 
@@ -520,7 +517,7 @@ def dashboard_stats(request):
                 "has_stadium": bool(user.profil.lieblingsverein and user.profil.lieblingsverein.stadien.exists()),
                 "completion_percentage": 100 if user.profil.lieblingsverein else 50
             },
-            "live_data_status": live_data_status  # 🆕 Neue Sektion
+            "live_data_status": live_data_status  # Neue Sektion
         })
         
     except Exception as e:

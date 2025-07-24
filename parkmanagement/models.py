@@ -4,8 +4,9 @@ from django.contrib.auth.models import User
 # Model für Parkplatz
 class Parkplatz(models.Model):
     name = models.CharField(max_length=100)
-    adresse = models.CharField(max_length=255)
+    adresse = models.CharField(max_length=255, null=True, blank=True)
     
+    # Grunddaten
     kapazitaet = models.IntegerField(null=True, blank=True)
     frei = models.IntegerField(default=0, null=True, blank=True)
     preis_pro_stunde = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
@@ -14,15 +15,57 @@ class Parkplatz(models.Model):
     oeffnungszeiten = models.CharField(max_length=100, null=True, blank=True)
     schliesszeiten = models.CharField(max_length=100, null=True, blank=True)
 
+    # Geolocation
     latitude = models.DecimalField(max_digits=9, decimal_places=6)
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
     
-    letztes_update = models.DateTimeField(auto_now=True)
+    # Relationen
     stadion = models.ForeignKey('Stadion', on_delete=models.CASCADE, null=True, blank=True, related_name='parkplaetze')
+        
+    # Externe ID für API-Integration
+    external_id = models.CharField(
+        max_length=100, 
+        null=True, 
+        blank=True,
+        help_text="Externe ID von API-Anbietern"
+    )
+    
+    # Live-Daten JSON 
+    live_data_json = models.JSONField(
+        default=dict,
+        null=True,  
+        blank=True,
+        help_text="Live-Verfügbarkeitsdaten von externen APIs im JSON-Format"
+    )
+    
+    # Live-Daten Metadaten
+    live_data_source = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text="Quelle der Live-Daten"
+    )
+    
+    live_data_update = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Zeitstempel der letzten Live-Daten Aktualisierung"
+    )
+    
+    # System-Metadaten
+    letztes_update = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Parkplatz"
+        verbose_name_plural = "Parkplätze"
 
     def __str__(self):
         return self.name
 
+    @property
+    def has_live_data(self):
+        return bool(self.live_data_json and self.live_data_update)
+    
 # Model für Benutzerprofil
 # Das Benutzerprofil erweitert die Django User-Klasse um zusätzliche Informationen.
 class BenutzerProfil(models.Model): 

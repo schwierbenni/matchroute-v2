@@ -57,11 +57,11 @@ const getTrafficColor = (rating) => {
 
 const getTrafficLabel = (rating) => {
   const labels = {
-    5: 'Excellent',
-    4: 'Good', 
+    5: 'Exzellent',
+    4: 'Gut', 
     3: 'Fair',
-    2: 'Poor',
-    1: 'Critical'
+    2: 'Schlecht',
+    1: 'Kritisch'
   };
   return labels[rating] || 'Unknown';
 };
@@ -183,12 +183,7 @@ const ParkplatzCard = ({ vorschlag, index, isActive, onClick }) => {
               <span className="text-sm text-gray-500 font-medium">Gesamt</span>
             </div>
             
-            {vorschlag.verkehr_bewertung && (
-              <div className={`px-3 py-1 rounded-full border text-sm font-medium flex items-center ${getTrafficColor(vorschlag.verkehr_bewertung)}`}>
-                <Zap className="w-4 h-4 mr-1" />
-                {getTrafficLabel(vorschlag.verkehr_bewertung)} ({vorschlag.verkehr_bewertung}/5)
-              </div>
-            )}
+           
           </div>
         </div>
       </div>
@@ -284,7 +279,7 @@ const ParkplatzCard = ({ vorschlag, index, isActive, onClick }) => {
           </div>
           <p className="text-sm text-gray-600">
             Für diesen Parkplatz stehen aktuell keine Echtzeit-Verfügbarkeitsdaten zur Verfügung.
-            Die Routenberechnung basiert auf statischen Daten.
+            Bitte prüfen Sie die Verfügbarkeit vor Ort.
           </p>
         </div>
       )}

@@ -334,7 +334,6 @@ const RoutePlanPage = () => {
           </div>
         )}
 
-        {/* 🎯 NEUES LAYOUT: Desktop-optimiert mit mehr Platz für Parkplatzvorschläge */}
         <div className="max-w-8xl mx-auto">
           
           {/* Search Form - Kompakter für Desktop */}
@@ -394,13 +393,10 @@ const RoutePlanPage = () => {
             </div>
           </div>
 
-          {/* 🎯 DESKTOP LAYOUT: 60% Parkplätze + 40% Karte/Infos */}
           <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
             
-            {/* 🎯 HAUPTBEREICH: Parkplatz-Vorschläge (60% Desktop-Breite) */}
             <div className="xl:col-span-3 space-y-6">
               
-              {/* Traffic Assessment - Kompakter */}
               {ergebnis?.empfohlener_parkplatz?.verkehr_bewertung && (
                 <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg p-4 border border-white/20">
                   <div className="flex items-center gap-4">
@@ -426,7 +422,6 @@ const RoutePlanPage = () => {
                 </div>
               )}
 
-              {/* 🎯 PARKPLATZ-VORSCHLÄGE: Hauptbereich mit mehr Platz */}
               {alleVorschlaege.length > 0 && (
                 <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20">
                   <div className="p-6 bg-gray-50/80 border-b border-gray-200">
@@ -447,7 +442,6 @@ const RoutePlanPage = () => {
                     </div>
                   </div>
                   
-                  {/* 🎯 MEHR PLATZ für Parkplatz-Karten */}
                   <div className="p-6 space-y-6 max-h-[800px] overflow-y-auto">
                     {alleVorschlaege
                       .sort((a, b) => a.gesamtzeit - b.gesamtzeit)
@@ -478,12 +472,10 @@ const RoutePlanPage = () => {
                 </div>
               )}
 
-              {/* Loading State */}
               {isLoading && alleVorschlaege.length === 0 && (
                 <LoadingSpinner message={loadingStage} />
               )}
 
-              {/* Empty State */}
               {!isLoading && alleVorschlaege.length === 0 && !fehlerMeldung && (
                 <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-white/20 text-center">
                   <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -501,10 +493,8 @@ const RoutePlanPage = () => {
               )}
             </div>
 
-            {/* 🎯 SEITENBEREICH: Karte + Kompakte Aktionen (40% Desktop-Breite) */}
             <div className="xl:col-span-2 space-y-6">
               
-              {/* Interactive Map - Kompakter */}
               <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden border border-white/20">
                 <div className="p-4 bg-gray-50/80 border-b border-gray-200">
                   <h3 className="text-lg font-bold text-gray-800 flex items-center">

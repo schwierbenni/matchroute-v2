@@ -33,11 +33,11 @@ def berechne_realistische_verkehrsbewertung(normal_dauer_sekunden, traffic_dauer
     - Absolute Verzögerungszeit
     
     Skala: 1-5 (statt 1-10) für realistischere Bewertung
-    5 = Excellent (freie Fahrt)
-    4 = Good (leichte Verzögerung)
+    5 = Exzellent (freie Fahrt)
+    4 = Gut (leichte Verzögerung)
     3 = Fair (moderate Verzögerung) 
-    2 = Poor (starke Verzögerung)
-    1 = Critical (extreme Verzögerung)
+    2 = Schlecht (starke Verzögerung)
+    1 = Kritisch (extreme Verzögerung)
     """
     
     if normal_dauer_sekunden == 0:
@@ -50,41 +50,17 @@ def berechne_realistische_verkehrsbewertung(normal_dauer_sekunden, traffic_dauer
     verzoegerung_minuten = (traffic_dauer_sekunden - normal_dauer_sekunden) / 60
     
     # Base Score basierend auf Verzögerung
-    if verzoegerung_prozent <= 5:  # Bis 5% Verzögerung
+    if verzoegerung_prozent <= 8:  # Bis 5% Verzögerung
         base_score = 5
-    elif verzoegerung_prozent <= 15:  # 5-15% Verzögerung
+    elif verzoegerung_prozent <= 20:  # 5-20% Verzögerung
         base_score = 4
-    elif verzoegerung_prozent <= 35:  # 15-35% Verzögerung
+    elif verzoegerung_prozent <= 45:  # 15-45% Verzögerung
         base_score = 3
-    elif verzoegerung_prozent <= 60:  # 35-60% Verzögerung
+    elif verzoegerung_prozent <= 70:  # 35-70% Verzögerung
         base_score = 2
     else:  # Über 60% Verzögerung
         base_score = 1
-    
-    # Tageszeit-Faktor (falls verfügbar)
-    if tageszeit:
-        hour = tageszeit.hour if isinstance(tageszeit, datetime) else tageszeit
         
-        # Rush Hour Penalties
-        if 7 <= hour <= 9 or 17 <= hour <= 19:  # Hauptverkehrszeiten
-            if verzoegerung_prozent > 10:
-                base_score = max(1, base_score - 1)  # Ein Punkt Abzug
-        elif 22 <= hour or hour <= 6:  # Nachtzeit
-            if verzoegerung_prozent < 20:  # Nachts sollte wenig Verkehr sein
-                base_score = min(5, base_score + 1)  # Bonus für gute Nachtzeit-Performance
-    
-    # Wochentag-Faktor
-    if wochentag is not None:
-        if wochentag in [5, 6]:  # Samstag/Sonntag (0=Montag)
-            if verzoegerung_prozent < 25:  # Wochenende sollte entspannter sein
-                base_score = min(5, base_score + 1)
-    
-    # Absolute Verzögerung berücksichtigen
-    if verzoegerung_minuten > 15:  # Mehr als 15 Minuten Verzögerung ist immer schlecht
-        base_score = min(base_score, 2)
-    elif verzoegerung_minuten > 30:  # Mehr als 30 Minuten ist kritisch
-        base_score = 1
-    
     # Kommentar generieren
     kommentar = generiere_realistischen_verkehrskommentar(
         base_score, verzoegerung_prozent, verzoegerung_minuten, tageszeit

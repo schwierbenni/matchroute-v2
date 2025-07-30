@@ -17,6 +17,8 @@ from .views import (
     dortmund_parking_overview,
     live_parking_status,
     research_data_export,
+    performance_analysis,
+    monitoring_export
 )
 
 router = DefaultRouter()
@@ -45,6 +47,9 @@ urlpatterns = [
     
     # 🎓 FORSCHUNGS-ENDPOINTS für Masterarbeit
     path("research/data-export/", research_data_export, name="research_data_export"),
+    
+    path("performance/analysis/", performance_analysis, name="performance_analysis"),
+    path("performance/export/", monitoring_export, name="monitoring_export"),
     
     # Router URLs
     path('', include(router.urls)),
